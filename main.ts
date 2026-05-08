@@ -75,5 +75,5 @@ app.use(
 );
 
 const port = parseInt(Deno.env.get("PORT") ?? "3102", 10);
-console.log(`sso listening on :${port}`);
+console.log(`kratos-admin listening on :${port}`);
 Deno.serve({ port }, app.fetch);
