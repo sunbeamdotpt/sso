@@ -18,6 +18,8 @@ targets:
     exec: "rm -rf dist styled-system node_modules deno.lock"
   doc:
     exec: skip
+  package:
+    exec: "docker buildx build --push -t src.${SUNBEAM_REGISTRY}/studio/sso-ui:latest ."
 deps:
   services: [kratos]
 outputs:
