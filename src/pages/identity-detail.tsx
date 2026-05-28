@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useParams, Link } from "@tanstack/react-router";
+import { useParams, Link, useNavigate } from "@tanstack/react-router";
 import { useRestQuery, useRestMutation } from "@sunbeam/g2v";
 import { Badge, Tabs, Icon, Button, ScrollArea, Toast, TextInput, Checkbox, TagsInput } from "@sunbeam/beam-ui";
 import { css } from "styled-system/css";
@@ -739,6 +739,7 @@ const USE_DUMMY_DATA = import.meta.env.DEV;
 /* ------------------------------------------------------------------ */
 
 export function IdentityDetailPage() {
+  const navigate = useNavigate();
   const { id } = useParams({ from: "/identities/$id" });
   const [activeTab, setActiveTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
@@ -886,7 +887,7 @@ export function IdentityDetailPage() {
                       if (confirm("Delete this identity? This action cannot be undone.")) {
                         deleteIdentity.mutate(undefined, {
                           onSuccess: () => {
-                            window.history.back();
+                            navigate({ to: "/identities" });
                           },
                         });
                       }
