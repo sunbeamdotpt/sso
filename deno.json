@@ -1,0 +1,51 @@
+{
+  "name": "@sunbeam/sso-ui",
+  "version": "0.1.0",
+  "exports": "./src/main.tsx",
+  "tasks": {
+    "install": "deno install --allow-scripts",
+    "prepare": "deno task install && deno run -A scripts/link-jsr.ts && deno run -A npm:@pandacss/dev@^1.9.1 codegen",
+    "dev": "deno run -A npm:vite@^6.0.0",
+    "build": "deno task prepare && deno run -A npm:vite@^6.0.0 build",
+    "preview": "deno run -A npm:vite@^6.0.0 preview",
+    "check": "deno check src/main.tsx",
+    "lint": "deno lint src/",
+    "fmt": "deno fmt src/",
+    "test": "deno test -A --location http://localhost src/",
+    "test:e2e": "deno run -A npm:playwright test",
+    "test:e2e:ui": "deno run -A npm:playwright test --ui",
+    "test:e2e:debug": "deno run -A npm:playwright test --debug"
+  },
+  "imports": {
+    "@playwright/test": "npm:@playwright/test@1.60.0",
+    "@sunbeam/g2v": "npm:@jsr/sunbeam__g2v@^0.3.0",
+    "@sunbeam/g2v/rest": "npm:@jsr/sunbeam__g2v@^0.3.0/rest",
+    "@sunbeam/g2v/router": "npm:@jsr/sunbeam__g2v@^0.3.0/router",
+    "@sunbeam/beam-ui": "npm:@jsr/sunbeam__beam-ui@^0.11.0",
+    "@sunbeam/beam-ui/preset": "npm:@jsr/sunbeam__beam-ui@^0.11.0/preset",
+    "playwright": "npm:playwright@^1.60.0",
+    "react": "npm:react@^19.0.0",
+    "react/jsx-runtime": "npm:react@^19.0.0/jsx-runtime",
+    "react-dom": "npm:react-dom@^19.0.0",
+    "@types/react": "npm:@types/react@^19.0.0",
+    "@types/react-dom": "npm:@types/react-dom@^19.0.0",
+    "@tanstack/react-router": "npm:@tanstack/react-router@^1.0.0",
+    "@tanstack/react-query": "npm:@tanstack/react-query@^5.59.0",
+    "@legendapp/state": "npm:@legendapp/state@^1.0.0",
+    "@ark-ui/react": "npm:@ark-ui/react@^4.0.0",
+    "@pandacss/dev": "npm:@pandacss/dev@^1.9.1",
+    "vite": "npm:vite@^6.0.0",
+    "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^4.3.0",
+    "typescript": "npm:typescript@^5.6.0",
+    "styled-system/css": "./styled-system/css/index.mjs",
+    "styled-system/": "./styled-system/"
+  },
+  "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "jsxImportSourceTypes": "@types/react",
+    "types": ["./src/vite-env.d.ts"]
+  }
+}

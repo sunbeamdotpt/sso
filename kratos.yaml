@@ -1,0 +1,123 @@
+version: v1.3.0
+
+dsn: memory
+
+serve:
+  public:
+    base_url: http://localhost:4433/
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:3000
+        - http://localhost:58247
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
+      allowed_headers:
+        - Authorization
+        - Content-Type
+        - X-CSRF-Token
+      exposed_headers:
+        - Content-Type
+      allow_credentials: true
+  admin:
+    base_url: http://kratos:4434/
+
+selfservice:
+  default_browser_return_url: http://localhost:3000/
+  allowed_return_urls:
+    - http://localhost:3000
+    - http://localhost:3000/
+    - http://localhost:58247
+
+  methods:
+    password:
+      enabled: true
+    totp:
+      enabled: true
+      config:
+        issuer: Sunbeam
+    webauthn:
+      enabled: true
+      config:
+        rp:
+          id: localhost
+          origin: http://localhost:3000
+          display_name: Sunbeam
+    code:
+      enabled: true
+    oidc:
+      enabled: false
+
+  flows:
+    error:
+      ui_url: http://localhost:3000/auth/error
+
+    settings:
+      ui_url: http://localhost:3000/account/security
+      privileged_session_max_age: 15m
+      required_aal: highest_available
+
+    recovery:
+      enabled: true
+      ui_url: http://localhost:3000/auth/recovery
+      use: code
+      notify_unknown_recipients: false
+
+    verification:
+      enabled: true
+      ui_url: http://localhost:3000/auth/verify
+      after:
+        default_browser_return_url: http://localhost:3000/account/profile
+      notify_unknown_recipients: false
+
+    logout:
+      after:
+        default_browser_return_url: http://localhost:3000/auth/login
+
+    login:
+      ui_url: http://localhost:3000/auth/login
+      lifespan: 10m
+      after:
+        password:
+          hooks:
+            - hook: require_verified_address
+
+    registration:
+      lifespan: 10m
+      ui_url: http://localhost:3000/auth/register
+      after:
+        password:
+          hooks:
+            - hook: session
+            - hook: show_verification_ui
+
+log:
+  level: info
+  format: text
+  leak_sensitive_values: true
+
+courier:
+  smtp:
+    connection_uri: smtps://test:test@stalwart:1025/?skip_ssl_verify=true&legacy_ssl=true
+
+identity:
+  default_schema_id: default
+  schemas:
+    - id: default
+      url: file:///etc/config/kratos/identity.schema.json
+
+session:
+  lifespan: 720h
+  cookie:
+    domain: localhost
+    name: ory_kratos_session
+    path: /
+    same_site: Lax
+
+secrets:
+  cookie:
+    - dev-cookie-secret-32-bytes-min---

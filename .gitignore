@@ -1,0 +1,25 @@
+# Dependencies
+ui/node_modules/
+
+# Build artifacts
+ui/dist/
+sso
+sso-*
+
+# Dev/editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Deno cache
+.deno/
+
+# Lock files managed per-environment
+ui/package-lock.json
+*.timestamp-*

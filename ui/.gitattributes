@@ -1,0 +1,5 @@
+# Playwright screenshots and traces are large binary blobs — store via Git LFS.
+tests/__screenshots__/**/*.png   filter=lfs diff=lfs merge=lfs -text
+tests/__screenshots__/**/*.jpg   filter=lfs diff=lfs merge=lfs -text
+tests/__screenshots__/**/*.zip   filter=lfs diff=lfs merge=lfs -text
+tests/__screenshots__/**/*.webm  filter=lfs diff=lfs merge=lfs -text

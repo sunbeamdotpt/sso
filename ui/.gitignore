@@ -1,0 +1,10 @@
+node_modules
+dist
+styled-system
+*.log
+.DS_Store
+
+# Default Playwright output dirs are NOT this project's source of truth —
+# screenshots go to tests/__screenshots__/ which is tracked via LFS.
+playwright-report
+test-results

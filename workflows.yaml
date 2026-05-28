@@ -1,0 +1,349 @@
+# workflows.yaml -- SSO CI pipeline
+#
+# Runs on every push via wfe-server webhook → ci workflow.
+# Hybrid app: Deno HTTP server (main.ts + server/) fronts a Vite/React
+# UI (ui/). Dockerfile is three-stage (node → deno → distroless).
+#
+# On mainline: tag → image → release. No publish — private admin UI.
+#
+# === Prerequisites ===
+#
+# 1. wfe-server deployed (see ../sbbb/base/wfe/)
+# 2. wfe-credentials Secret with gitea-token + buildkit-*
+# 3. wfe-ci image at src.sunbeam.pt/studio/wfe-ci:latest
+
+# --- Shared Templates ---
+
+_templates:
+
+  ci_env: &ci_env
+    GITEA_TOKEN: ${WFE_GITEA_TOKEN}
+    TEA_TOKEN: ${WFE_GITEA_TOKEN}
+    BUILDKIT_CA_CERT: ${WFE_BUILDKIT_CA_CERT}
+    BUILDKIT_CLIENT_CERT: ${WFE_BUILDKIT_CLIENT_CERT}
+    BUILDKIT_CLIENT_KEY: ${WFE_BUILDKIT_CLIENT_KEY}
+
+  ci_config: &ci_config
+    image: src.sunbeam.pt/studio/wfe-ci:latest
+    memory: 4Gi
+    cpu: "2"
+    timeout: 30m
+    env: *ci_env
+
+  node_config: &node_config
+    image: node:22-alpine
+    memory: 4Gi
+    cpu: "2"
+    timeout: 30m
+    env: *ci_env
+
+  deno_config: &deno_config
+    image: denoland/deno:2.7.3
+    memory: 4Gi
+    cpu: "2"
+    timeout: 30m
+    env: *ci_env
+
+# --- Workflows ---
+
+workflows:
+
+  # === checkout ===
+
+  - id: checkout
+    name: Checkout
+    version: 1
+    inputs:
+      repo_url: string
+      commit_sha: string
+    outputs:
+      checkout_ok: bool
+      commit: string
+    steps:
+      - name: clone
+        type: kubernetes
+        outputs:
+          - name: checkout_ok
+          - name: commit
+        config:
+          <<: *ci_config
+          run: |
+            set -euo pipefail
+            cd /workspace
+            if [ ! -d sso ]; then
+              git clone "$REPO_URL" sso
+            fi
+            cd sso
+            git fetch --all
+            git checkout "$COMMIT_SHA"
+            COMMIT=$(git rev-parse HEAD)
+            echo "Checked out: $COMMIT"
+            echo "##wfe[output checkout_ok=true]"
+            echo "##wfe[output commit=$COMMIT]"
+
+  # === lint: deno fmt/lint for server + tsc for ui ===
+
+  - id: lint
+    name: Lint
+    version: 1
+    outputs:
+      deno_ok: bool
+      typecheck_ok: bool
+    steps:
+      - name: deno-fmt-lint
+        type: kubernetes
+        outputs:
+          - name: deno_ok
+        config:
+          <<: *deno_config
+          run: |
+            set -euo pipefail
+            cd /workspace/sso
+            deno fmt --check main.ts server/ deno.json
+            deno lint main.ts server/
+            echo "##wfe[output deno_ok=true]"
+
+      - name: ui-typecheck
+        type: kubernetes
+        outputs:
+          - name: typecheck_ok
+        config:
+          <<: *node_config
+          run: |
+            set -euo pipefail
+            cd /workspace/sso/ui
+            npm ci
+            npx tsc --noEmit
+            echo "##wfe[output typecheck_ok=true]"
+
+  # === test-unit: vitest for the UI ===
+
+  - id: test-unit
+    name: Unit Tests
+    version: 1
+    outputs:
+      ui_ok: bool
+    steps:
+      - name: ui-vitest
+        type: kubernetes
+        outputs:
+          - name: ui_ok
+        config:
+          <<: *node_config
+          run: |
+            set -euo pipefail
+            cd /workspace/sso/ui
+            npm ci
+            npm test
+            echo "##wfe[output ui_ok=true]"
+
+  # === tag: read version from package.json ===
+
+  - id: tag
+    name: Tag Release
+    version: 1
+    outputs:
+      version: string
+      tag_created: bool
+      tag_already_existed: bool
+    steps:
+      - name: read-version
+        type: kubernetes
+        outputs:
+          - name: version
+        config:
+          <<: *node_config
+          run: |
+            set -euo pipefail
+            cd /workspace/sso
+            VERSION=$(node -e "process.stdout.write(require('./package.json').version)")
+            echo "Version: $VERSION"
+            echo "##wfe[output version=$VERSION]"
+
+      - name: check-tag-exists
+        type: kubernetes
+        outputs:
+          - name: tag_already_existed
+        config:
+          <<: *ci_config
+          run: |
+            set -euo pipefail
+            cd /workspace/sso
+            git fetch --tags
+            TAG="v${VERSION}"
+            if git tag -l "$TAG" | grep -q "$TAG"; then
+              echo "##wfe[output tag_already_existed=true]"
+            else
+              echo "##wfe[output tag_already_existed=false]"
+            fi
+
+      - name: create-tag
+        type: kubernetes
+        when:
+          field: .outputs.tag_already_existed
+          equals: false
+        outputs:
+          - name: tag_created
+        config:
+          <<: *ci_config
+          run: |
+            set -euo pipefail
+            cd /workspace/sso
+            TAG="v${VERSION}"
+            git config user.email "wfe-ci@sunbeam.pt"
+            git config user.name "wfe-ci"
+            git tag -a "$TAG" -m "$TAG"
+            git push origin "$TAG"
+            echo "##wfe[output tag_created=true]"
+
+  # === image: build the three-stage container via buildkitd ===
+
+  - id: image
+    name: Build Image
+    version: 1
+    inputs:
+      version: string
+    outputs:
+      image_pushed: bool
+      image_digest: string
+    steps:
+      - name: write-buildkit-certs
+        type: kubernetes
+        config:
+          <<: *ci_config
+          run: |
+            set -euo pipefail
+            mkdir -p /workspace/buildkit-certs
+            echo "$BUILDKIT_CA_CERT"     > /workspace/buildkit-certs/ca.pem
+            echo "$BUILDKIT_CLIENT_CERT" > /workspace/buildkit-certs/client.pem
+            echo "$BUILDKIT_CLIENT_KEY"  > /workspace/buildkit-certs/client-key.pem
+            chmod 600 /workspace/buildkit-certs/client-key.pem
+
+      - name: build-and-push
+        type: buildkit
+        outputs:
+          - name: image_pushed
+          - name: image_digest
+        config:
+          dockerfile: /workspace/sso/Dockerfile
+          context: /workspace/sso
+          tags:
+            - "src.sunbeam.pt/studio/sso:${VERSION}"
+            - "src.sunbeam.pt/studio/sso:latest"
+          push: true
+          buildkit_addr: tcp://buildkitd.build.svc:1234
+          tls:
+            ca:   /workspace/buildkit-certs/ca.pem
+            cert: /workspace/buildkit-certs/client.pem
+            key:  /workspace/buildkit-certs/client-key.pem
+          timeout: 30m
+
+  # === release ===
+
+  - id: release
+    name: Gitea Release
+    version: 1
+    inputs:
+      version: string
+    outputs:
+      release_created: bool
+      release_url: string
+    steps:
+      - name: create-gitea-release
+        type: kubernetes
+        outputs:
+          - name: release_created
+          - name: release_url
+        config:
+          <<: *ci_config
+          run: |
+            set -euo pipefail
+            TAG="v${VERSION}"
+            tea login add --name sunbeam --url https://src.sunbeam.pt --token "$TEA_TOKEN" 2>/dev/null || true
+            if tea release create \
+              --repo studio/admin-ui \
+              --tag "$TAG" \
+              --title "$TAG" \
+              --note "Container: \`src.sunbeam.pt/studio/sso:${VERSION}\`" 2>&1; then
+              echo "##wfe[output release_created=true]"
+            else
+              echo "##wfe[output release_created=false]"
+            fi
+            echo "##wfe[output release_url=https://src.sunbeam.pt/studio/admin-ui/releases/tag/${TAG}]"
+
+  # === ci: top-level orchestrator ===
+
+  - id: ci
+    name: Continuous Integration
+    version: 1
+    inputs:
+      repo_url: string
+      commit_sha: string
+      branch: string?
+    outputs:
+      version: string
+      ui_ok: bool
+      image_pushed: bool
+      released: bool
+
+    steps:
+      - name: run-checkout
+        type: workflow
+        outputs:
+          - name: commit
+        config:
+          workflow: checkout
+          version: 1
+
+      - name: run-lint
+        type: workflow
+        outputs:
+          - name: deno_ok
+          - name: typecheck_ok
+        config:
+          workflow: lint
+          version: 1
+
+      - name: run-tests
+        type: workflow
+        outputs:
+          - name: ui_ok
+        config:
+          workflow: test-unit
+          version: 1
+
+      - name: run-tag
+        type: workflow
+        when:
+          field: .inputs.branch
+          equals: mainline
+        outputs:
+          - name: version
+          - name: tag_created
+        config:
+          workflow: tag
+          version: 1
+
+      - name: run-image
+        type: workflow
+        when:
+          field: .outputs.tag_created
+          equals: true
+        outputs:
+          - name: image_pushed
+          - name: image_digest
+        config:
+          workflow: image
+          version: 1
+
+      - name: run-release
+        type: workflow
+        when:
+          field: .outputs.tag_created
+          equals: true
+        outputs:
+          - name: released
+          - name: release_url
+        config:
+          workflow: release
+          version: 1

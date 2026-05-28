@@ -1,0 +1,24 @@
+schema: 1
+project:
+  name: sso
+  kind: node-ui
+  description: "Sunbeam SSO admin frontend — Kratos identity & self-service flow management."
+targets:
+  build:
+    exec: "deno task build"
+  test:
+    exec: "deno task test"
+  lint:
+    exec: "deno task lint"
+  fmt:
+    exec: "deno task fmt"
+  dev:
+    exec: "deno task dev"
+  clean:
+    exec: "rm -rf dist styled-system node_modules deno.lock"
+  doc:
+    exec: skip
+deps:
+  services: [kratos]
+outputs:
+  - dist

@@ -1,0 +1,29 @@
+# Dependencies (rebuilt in Docker)
+ui/node_modules/
+
+# Build artifacts (rebuilt in Docker)
+ui/dist/
+sso
+sso-*
+
+# Dev/editor
+.git
+.gitignore
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Deno cache
+.deno/
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
