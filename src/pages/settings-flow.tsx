@@ -13,6 +13,9 @@ export function SettingsFlowPage() {
   const [view, setView] = useState<View>("list");
   const [flow, setFlow] = useState<SettingsFlow | null>(null);
   const [totpCode, setTotpCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [profileValues, setProfileValues] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const query = useRestQuery<SettingsFlow>(api, "/self-service/settings/browser", {
@@ -60,6 +63,13 @@ export function SettingsFlowPage() {
 
   const ui = currentFlow?.ui;
 
+  const profileNodes = findNodesByGroup(ui, "profile").filter(
+    (n) => n.attributes.type !== "hidden" && n.attributes.type !== "submit" && n.attributes.node_type !== "script",
+  );
+
+  const passwordNodes = findNodesByGroup(ui, "password");
+  const passwordInputNode = findNodeByName(ui, "password");
+
   const totpNodes = findNodesByGroup(ui, "totp");
   const totpQrNode = findNodeByName(ui, "totp_qr");
   const totpSecretNode = findNodeByName(ui, "totp_secret");
@@ -95,6 +105,48 @@ export function SettingsFlowPage() {
 
       {currentFlow && (
         <div className={sections}>
+          {/* Profile Section */}
+          <div className={sectionCard}>
+            <h2 className={sectionTitle}>Profile</h2>
+            <div className={sectionBody}>
+              {profileNodes.length === 0 ? (
+                <p className={status}>No profile fields available.</p>
+              ) : (
+                <>
+                  {profileNodes.map((node) => {
+                    const name = node.attributes.name;
+                    const label = node.meta?.label?.text ?? name;
+                    const value = profileValues[name] ?? String(node.attributes.value ?? "");
+                    return (
+                      <TextInput
+                        key={name}
+                        label={label}
+                        value={value}
+                        onChange={(v) =>
+                          setProfileValues((prev) => ({ ...prev, [name]: v }))
+                        }
+                      />
+                    );
+                  })}
+                  <div className={buttonRow}>
+                    <Button
+                      onClick={() => {
+                        const body: Record<string, unknown> = {};
+                        for (const node of profileNodes) {
+                          const name = node.attributes.name;
+                          body[name] = profileValues[name] ?? node.attributes.value ?? "";
+                        }
+                        handleSubmit(body, "profile");
+                      }}
+                    >
+                      Save profile
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
           {/* TOTP Section */}
           <div className={sectionCard}>
             <h2 className={sectionTitle}>Authenticator App</h2>
@@ -233,7 +285,46 @@ export function SettingsFlowPage() {
           {/* Password Section */}
           <div className={sectionCard}>
             <h2 className={sectionTitle}>Password</h2>
-            <p className={status}>Password change form coming soon.</p>
+            <div className={sectionBody}>
+              {passwordNodes.length === 0 ? (
+                <p className={status}>Password change is not available.</p>
+              ) : (
+                <>
+                  <TextInput
+                    label="New password"
+                    type="password"
+                    value={password}
+                    onChange={(v) => setPassword(v)}
+                  />
+                  <TextInput
+                    label="Confirm password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(v) => setConfirmPassword(v)}
+                  />
+                  <div className={buttonRow}>
+                    <Button
+                      onClick={() => {
+                        if (password !== confirmPassword) {
+                          showToast("Passwords do not match", "error");
+                          return;
+                        }
+                        const body: Record<string, unknown> = { password };
+                        if (passwordInputNode) {
+                          body[passwordInputNode.attributes.name] = password;
+                        }
+                        handleSubmit(body, "password").then(() => {
+                          setPassword("");
+                          setConfirmPassword("");
+                        });
+                      }}
+                    >
+                      Change password
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
