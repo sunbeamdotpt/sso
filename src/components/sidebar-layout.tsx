@@ -1,3 +1,4 @@
+import { useRef, useState, useCallback, useEffect } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { css } from "styled-system/css";
 
@@ -64,10 +65,6 @@ const sidebarPanel = css({
   overflowY: "auto",
   paddingBlock: "16px",
   bg: "bg.surface",
-  borderRight: "1px solid",
-  borderColor: "border.default",
-  width: "240px",
-  flexShrink: 0,
 });
 
 const contentPanel = css({
@@ -75,6 +72,36 @@ const contentPanel = css({
   overflowY: "auto",
   padding: "24px",
   flex: 1,
+});
+
+const resizeHandle = css({
+  width: "8px",
+  cursor: "col-resize",
+  backgroundColor: "transparent",
+  border: "none",
+  padding: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  transition: "all 0.15s ease",
+  _hover: {
+    "& > div": {
+      backgroundColor: "sunbeam.orange",
+    },
+  },
+  _active: {
+    "& > div": {
+      backgroundColor: "sunbeam.orange",
+    },
+  },
+});
+
+const resizeBar = css({
+  width: "2px",
+  height: "32px",
+  backgroundColor: "border.default",
+  borderRadius: "full",
+  transition: "background-color 0.15s ease",
 });
 
 interface NavItem {
@@ -125,6 +152,29 @@ function Sidebar() {
   );
 }
 
+const STORAGE_KEY_SIZE = "kratos-admin:sidebar-size";
+const MIN_WIDTH = 180;
+const MAX_WIDTH = 400;
+const DEFAULT_WIDTH = 240;
+
+function readSidebarWidth(): number {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_SIZE);
+    const n = raw ? parseInt(raw, 10) : NaN;
+    return Number.isNaN(n) ? DEFAULT_WIDTH : Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, n));
+  } catch {
+    return DEFAULT_WIDTH;
+  }
+}
+
+function writeSidebarWidth(width: number) {
+  try {
+    localStorage.setItem(STORAGE_KEY_SIZE, String(Math.round(width)));
+  } catch {
+    // ignore
+  }
+}
+
 interface SidebarLayoutProps {
   children: React.ReactNode;
   open: boolean;
@@ -134,9 +184,63 @@ export function SidebarLayout({
   children,
   open,
 }: SidebarLayoutProps) {
+  const [width, setWidth] = useState(readSidebarWidth);
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(width);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    startXRef.current = e.clientX;
+    startWidthRef.current = width;
+  }, [width]);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - startXRef.current;
+      const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startWidthRef.current + delta));
+      setWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      writeSidebarWidth(width);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing, width]);
+
+  if (!open) {
+    return (
+      <div className={css({ display: "flex", height: "100%", overflow: "hidden" })}>
+        <div className={contentPanel}>{children}</div>
+      </div>
+    );
+  }
+
   return (
-    <div className={css({ display: "flex", height: "100%", overflow: "hidden" })}>
-      {open && <Sidebar />}
+    <div ref={containerRef} className={css({ display: "flex", height: "100%", overflow: "hidden" })}>
+      <div style={{ width, flexShrink: 0 }}>
+        <Sidebar />
+      </div>
+      <button
+        type="button"
+        className={resizeHandle}
+        onMouseDown={handleMouseDown}
+        aria-label="Resize sidebar"
+      >
+        <div className={resizeBar} />
+      </button>
       <div className={contentPanel}>{children}</div>
     </div>
   );
