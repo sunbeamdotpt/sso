@@ -118,3 +118,25 @@ export async function cleanupAllIdentities(): Promise<void> {
     }
   }
 }
+
+export async function createIdentityWithPassword(
+  email: string,
+  password: string,
+): Promise<{ identity: Identity; sessionToken: string }> {
+  return createAuthenticatedIdentity(email, password);
+}
+
+export async function updateIdentityTraits(
+  id: string,
+  traits: Record<string, unknown>,
+): Promise<Identity> {
+  const res = await adminFetch(`/identities/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify([{ op: "replace", path: "/traits", value: traits }]),
+  });
+  return res.json();
+}
+
+export async function deleteAllSessions(identityId: string): Promise<void> {
+  await adminFetch(`/identities/${identityId}/sessions`, { method: "DELETE" });
+}

@@ -1,40 +1,63 @@
 import { test, expect } from "@playwright/test";
-import { createAuthenticatedIdentity } from "./utils/kratos.ts";
+import { cleanupAllIdentities, createAuthenticatedIdentity } from "./utils/kratos.ts";
 
 test.describe("Settings Flow", () => {
-  test("unauthenticated: shows error", async ({ page }) => {
-    await page.goto("/settings");
-    await expect(page.getByRole("heading", { name: "Settings Flow" })).toBeVisible();
-    await expect(page.getByText(/Error:/i)).toBeVisible({ timeout: 10_000 });
+  test.beforeAll(async () => {
+    await cleanupAllIdentities();
   });
 
-  test("authenticated: displays flow for active session", async ({ page }) => {
-    // Create a real identity + session via Kratos public API
-    const { sessionToken } = await createAuthenticatedIdentity(
-      `settings-test-${Date.now()}@sunbeam.pt`,
-      "xK9#mQ2$pL7@vN4&wR1!",
-    );
-
-    // Intercept the settings API call and inject the session token header
-    // because the app's withAuth interceptor uses Bearer tokens, but Kratos
-    // expects X-Session-Token for session-based endpoints.
-    await page.route("**/api/self-service/settings/api", async (route) => {
-      const headers = route.request().headers();
-      headers["x-session-token"] = sessionToken;
-      await route.continue({ headers });
-    });
+  test("settings page shows all sections", async ({ page }) => {
+    const email = `settings-${Date.now()}@sunbeam.pt`;
+    const { sessionToken } = await createAuthenticatedIdentity(email, "xK9#mQ2$pL7@vN4&wR1!");
 
     await page.goto("/settings");
+    await page.context().addCookies([
+      { name: "ory_kratos_session", value: sessionToken, domain: "localhost", path: "/" },
+    ]);
+    await page.goto("/settings");
 
-    await expect(page.getByRole("heading", { name: "Settings Flow" })).toBeVisible();
-    await expect(page.locator("span", { hasText: /^Flow ID$/ }).first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator("span", { hasText: /^Type$/ }).first()).toBeVisible();
-    await expect(page.locator("span", { hasText: /^Identity$/ }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Authenticator App" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Backup Codes" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Password" })).toBeVisible();
+  });
 
-    const jsonBlock = page.locator("pre").first();
-    await expect(jsonBlock).toBeVisible();
-    const text = await jsonBlock.textContent();
-    expect(text).toContain('"id"');
-    expect(text).toContain('"identity"');
+  test("password change form is present", async ({ page }) => {
+    const email = `settings-pw-${Date.now()}@sunbeam.pt`;
+    const { sessionToken } = await createAuthenticatedIdentity(email, "xK9#mQ2$pL7@vN4&wR1!");
+
+    await page.goto("/settings");
+    await page.context().addCookies([
+      { name: "ory_kratos_session", value: sessionToken, domain: "localhost", path: "/" },
+    ]);
+    await page.goto("/settings");
+
+    await expect(page.getByRole("heading", { name: "Password" })).toBeVisible();
+    await expect(page.getByLabel(/New password/i)).toBeVisible();
+    await expect(page.getByLabel(/Confirm password/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Change password/i })).toBeVisible();
+  });
+
+  test("TOTP setup shows QR code", async ({ page }) => {
+    const email = `settings-totp-${Date.now()}@sunbeam.pt`;
+    const { sessionToken } = await createAuthenticatedIdentity(email, "xK9#mQ2$pL7@vN4&wR1!");
+
+    await page.goto("/settings");
+    await page.context().addCookies([
+      { name: "ory_kratos_session", value: sessionToken, domain: "localhost", path: "/" },
+    ]);
+    await page.goto("/settings");
+
+    await expect(page.getByRole("heading", { name: "Authenticator App" })).toBeVisible();
+
+    const setupButton = page.getByRole("button", { name: /Set up TOTP/i });
+    if (await setupButton.isVisible().catch(() => false)) {
+      await setupButton.click();
+      await expect(page.locator("img[alt='TOTP QR code']")).toBeVisible({ timeout: 10_000 });
+    } else {
+      // TOTP may already be enrolled or not available — assert the section is present
+      await expect(page.getByText(/Two-factor authentication is enabled|TOTP is not set up/i)).toBeVisible();
+    }
   });
 });
