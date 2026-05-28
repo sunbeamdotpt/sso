@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { Shell, NotificationCenter, Avatar, Button } from "@sunbeam/beam-ui";
+import { Shell, NotificationCenter, Avatar, Button, ThemeToggle } from "@sunbeam/beam-ui";
 import { useAuth } from "@sunbeam/g2v";
 import { useTheme } from "@sunbeam/g2v";
 import type { Notification } from "@sunbeam/beam-ui";
@@ -54,6 +54,36 @@ const waffleBtn = css({
     color: "text.primary",
     bg: "bg.hover",
   },
+});
+
+const headerBar = css({
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  zIndex: 50,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  height: "64px",
+  backdropFilter: "blur(12px)",
+  borderBottom: "1px solid",
+  borderColor: "border.subtle",
+  bg: "bg.nav",
+  shadow: "nav",
+  paddingInline: { base: "16px", md: "24px", lg: "32px" },
+});
+
+const headerLeft = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+});
+
+const headerRight = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
 });
 
 function HeaderActions() {
@@ -145,34 +175,35 @@ export function App() {
     );
   }
 
-  const brand = (
-    <div className={css({ display: "flex", alignItems: "center", gap: "8px" })}>
-      <button
-        type="button"
-        onClick={toggleSidebar}
-        className={waffleBtn}
-        aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-        aria-pressed={sidebarOpen}
-        title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
-          {sidebarOpen ? "dock_to_left" : "dock_to_left"}
-        </span>
-      </button>
-      <Link to="/" className={brandStyle}>
-        Sunbeam SSO
-      </Link>
-    </div>
+  const customHeader = (
+    <header className={headerBar}>
+      <div className={headerLeft}>
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className={waffleBtn}
+          aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          aria-pressed={sidebarOpen}
+          title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
+            {sidebarOpen ? "dock_to_left" : "dock_to_left"}
+          </span>
+        </button>
+        <Link to="/" className={brandStyle}>
+          Sunbeam SSO
+        </Link>
+      </div>
+      <div className={headerRight}>
+        <HeaderActions />
+        <ThemeToggle />
+      </div>
+    </header>
   );
 
   return (
     <div data-theme={theme} style={{ height: "100%" }}>
-      <Shell
-        footer={null}
-        headerActions={<HeaderActions />}
-        brand={brand}
-        fullWidth
-      >
+      <Shell footer={null} header={customHeader}>
         <SidebarLayout open={sidebarOpen}>
           <Outlet />
         </SidebarLayout>
