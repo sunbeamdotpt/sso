@@ -62,7 +62,10 @@ export function LoginFlowPage() {
     const result = await submitFlow(currentFlow as LoginFlow & { ui: NonNullable<LoginFlow["ui"]> }, { identifier: email, password }, "password");
 
     if (result.success && result.session) {
-      setUserSession(result.session.identity as import("../api/types.ts").Identity);
+      setUserSession(
+        result.session.identity as import("../api/types.ts").Identity,
+        result.session.authenticator_assurance_level,
+      );
       showToast("Login successful!", "success");
       navigate({ to: "/" });
       return;
@@ -106,7 +109,10 @@ export function LoginFlowPage() {
     const result = await submitFlow(currentFlow as LoginFlow & { ui: NonNullable<LoginFlow["ui"]> }, body, activeMfaMethod);
 
     if (result.success && result.session) {
-      setUserSession(result.session.identity as import("../api/types.ts").Identity);
+      setUserSession(
+        result.session.identity as import("../api/types.ts").Identity,
+        result.session.authenticator_assurance_level,
+      );
       showToast("Login successful!", "success");
       navigate({ to: "/" });
       return;
