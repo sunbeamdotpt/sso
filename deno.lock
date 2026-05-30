@@ -4,6 +4,7 @@
     "jsr:@sunbeam/beam-ui@0.11.0": "0.11.0",
     "npm:@ark-ui/react@4": "4.9.2_react@19.2.6_react-dom@19.2.6__react@19.2.6",
     "npm:@jsr/sunbeam__beam-ui@0.11": "0.11.0_react-dom@19.2.6__react@19.2.6_react-is@19.2.6_redux@5.0.1_typescript@5.9.3",
+    "npm:@jsr/sunbeam__beam-ui@0.11.0": "0.11.0_react-dom@19.2.6__react@19.2.6_react-is@19.2.6_redux@5.0.1_typescript@5.9.3",
     "npm:@jsr/sunbeam__g2v@0.3": "0.3.0_react-dom@19.2.6__react@19.2.6_zone.js@0.15.1",
     "npm:@legendapp/state@1": "1.11.3_react@19.2.6",
     "npm:@pandacss/dev@^1.9.1": "1.11.1_typescript@5.9.3",

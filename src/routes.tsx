@@ -87,16 +87,6 @@ const loginRoute = createRoute({
   ),
 });
 
-const registrationRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/registration",
-  component: () => (
-    <PublicRoute>
-      <RegistrationFlowPage />
-    </PublicRoute>
-  ),
-});
-
 const recoveryRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/recovery",
@@ -167,7 +157,6 @@ const routeTree = rootRoute.addChildren([
   identityDetailRoute,
   schemaDetailRoute,
   loginRoute,
-  registrationRoute,
   recoveryRoute,
   settingsRoute,
   verificationRoute,

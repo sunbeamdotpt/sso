@@ -1023,7 +1023,7 @@ export function IdentityDetailPage() {
 
 const container = css({
   padding: "24px",
-  maxWidth: "960px",
+  maxWidth: "1200px",
   margin: "0 auto",
 });
 

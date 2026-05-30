@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { Shell, NotificationCenter, Avatar, Button, ThemeToggle } from "@sunbeam/beam-ui";
+import { Shell, NotificationCenter, Avatar, Button, ThemeToggle, DropdownMenu } from "@sunbeam/beam-ui";
 import { useAuth } from "@sunbeam/g2v";
 import { useTheme } from "@sunbeam/g2v";
 import type { Notification } from "@sunbeam/beam-ui";
@@ -64,26 +64,44 @@ const headerBar = css({
   zIndex: 50,
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
+  justifyContent: "center",
   height: "64px",
   backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
   borderBottom: "1px solid",
   borderColor: "border.subtle",
   bg: "bg.nav",
   shadow: "nav",
+  _dark: {
+    bg: "rgba(31, 31, 31, 0.85)",
+    borderColor: "rgba(255, 161, 16, 0.12)",
+    boxShadow: "0 3px 20px rgba(127, 99, 21, 0.15), 0 1px 0 rgba(255, 161, 16, 0.08) inset",
+  },
+  _light: {
+    bg: "rgba(255, 250, 235, 0.85)",
+    borderColor: "rgba(127, 99, 21, 0.12)",
+    boxShadow: "0 3px 20px rgba(127, 99, 21, 0.12), 0 1px 0 rgba(255, 255, 255, 0.5) inset",
+  },
+});
+
+const headerInner = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  width: "100%",
   paddingInline: { base: "16px", md: "24px", lg: "32px" },
 });
 
 const headerLeft = css({
   display: "flex",
   alignItems: "center",
-  gap: "8px",
+  gap: { base: "12px", lg: "40px" },
 });
 
 const headerRight = css({
   display: "flex",
   alignItems: "center",
-  gap: "12px",
+  gap: "16px",
 });
 
 function HeaderActions() {
@@ -124,12 +142,33 @@ function HeaderActions() {
         onMarkRead={handleMarkRead}
         onMarkAllRead={handleMarkAllRead}
       />
-      <div className={css({ display: "flex", alignItems: "center", gap: "12px" })}>
-        <Avatar name={userClaims?.name ?? userClaims?.email ?? "User"} size="sm" />
-        <Button variant="ghost" onClick={handleLogout}>
-          Log out
-        </Button>
-      </div>
+      <ThemeToggle />
+      <DropdownMenu
+        items={[
+          {
+            label: "Log out",
+            icon: "logout",
+            danger: true,
+            onClick: handleLogout,
+          },
+        ]}
+      >
+        <button
+          type="button"
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+          })}
+          aria-label="User menu"
+        >
+          <Avatar name={userClaims?.name ?? userClaims?.email ?? "User"} size="sm" />
+        </button>
+      </DropdownMenu>
     </>
   );
 }
@@ -177,26 +216,27 @@ export function App() {
 
   const customHeader = (
     <header className={headerBar}>
-      <div className={headerLeft}>
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          className={waffleBtn}
-          aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-          aria-pressed={sidebarOpen}
-          title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
-            {sidebarOpen ? "dock_to_left" : "dock_to_left"}
-          </span>
-        </button>
-        <Link to="/" className={brandStyle}>
-          Sunbeam SSO
-        </Link>
-      </div>
-      <div className={headerRight}>
-        <HeaderActions />
-        <ThemeToggle />
+      <div className={headerInner}>
+        <div className={headerLeft}>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className={waffleBtn}
+            aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            aria-pressed={sidebarOpen}
+            title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
+              {sidebarOpen ? "dock_to_left" : "dock_to_left"}
+            </span>
+          </button>
+          <Link to="/" className={brandStyle}>
+            Sunbeam SSO
+          </Link>
+        </div>
+        <div className={headerRight}>
+          <HeaderActions />
+        </div>
       </div>
     </header>
   );

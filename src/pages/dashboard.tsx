@@ -29,11 +29,6 @@ export function DashboardPage() {
           <span className={cardTitle}>Login Flows</span>
           <span className={cardDesc}>Configure authentication</span>
         </Link>
-        <Link to="/registration" className={card}>
-          <span className={cardIcon}>person_add</span>
-          <span className={cardTitle}>Registration</span>
-          <span className={cardDesc}>Sign-up experiences</span>
-        </Link>
         <Link to="/recovery" className={card}>
           <span className={cardIcon}>key</span>
           <span className={cardTitle}>Recovery</span>

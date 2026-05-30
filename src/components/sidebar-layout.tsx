@@ -113,11 +113,6 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/", icon: "dashboard" },
   { label: "Identities", href: "/identities", icon: "people" },
-  { label: "Login Flow", href: "/login", icon: "login" },
-  { label: "Registration", href: "/registration", icon: "person_add" },
-  { label: "Recovery", href: "/recovery", icon: "key" },
-  { label: "Settings", href: "/settings", icon: "settings" },
-  { label: "Verification", href: "/verification", icon: "verified" },
   { label: "Health", href: "/health", icon: "monitor_heart" },
 ];
 

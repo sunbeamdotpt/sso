@@ -5,9 +5,9 @@ test.describe("OAuth Pages", () => {
     // Visit without a challenge — page should show a message or the consent form
     await page.goto("/consent");
 
-    // The consent page either shows "Authorize" heading or an error/warning callout
+    // The consent page shows "Authorize" heading when rendered
     await expect(
-      page.getByRole("heading", { name: /Authorize/i }).or(page.getByText(/challenge|request/i)),
+      page.getByRole("heading", { name: /Authorize/i }),
     ).toBeVisible({ timeout: 10_000 });
   });
 

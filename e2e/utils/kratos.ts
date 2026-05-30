@@ -63,49 +63,62 @@ export async function getIdentity(id: string): Promise<Identity> {
   return res.json();
 }
 
-/**
- * Create an identity and immediately establish a session for it
- * using the password method via the public API.  Returns the session
- * token so that authenticated pages (e.g. settings) can be tested.
- */
+async function delay(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 export async function createAuthenticatedIdentity(
   email: string,
   password: string,
+  retries = 3,
 ): Promise<{ identity: Identity; sessionToken: string }> {
-  // 1. Create a registration flow
-  const flowRes = await fetch(
-    "http://localhost:4433/self-service/registration/api",
-    { headers: { Accept: "application/json" } },
-  );
-  const flow = await flowRes.json();
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      // 1. Create a registration flow
+      const flowRes = await fetch(
+        "http://localhost:4433/self-service/registration/api",
+        { headers: { Accept: "application/json" } },
+      );
+      const flow = await flowRes.json();
 
-  // 2. Submit registration
-  const submitRes = await fetch(flow.ui.action, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      method: "password",
-      password,
-      traits: { email },
-      csrf_token: flow.ui.nodes.find((n: Record<string, unknown>) =>
-        (n.attributes as Record<string, unknown>)?.name === "csrf_token"
-      )?.attributes?.value ?? "",
-    }),
-  });
+      // 2. Submit registration
+      const submitRes = await fetch(flow.ui.action, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          method: "password",
+          password,
+          traits: { email },
+          csrf_token: flow.ui.nodes.find((n: Record<string, unknown>) =>
+            (n.attributes as Record<string, unknown>)?.name === "csrf_token"
+          )?.attributes?.value ?? "",
+        }),
+      });
 
-  if (!submitRes.ok) {
-    const body = await submitRes.text();
-    throw new Error(`Registration failed: ${submitRes.status} ${body}`);
+      if (!submitRes.ok) {
+        const body = await submitRes.text();
+        throw new Error(`Registration failed: ${submitRes.status} ${body}`);
+      }
+
+      const result = await submitRes.json();
+      const sessionToken = result.session_token as string;
+      const identity = result.identity as Identity;
+
+      return { identity, sessionToken };
+    } catch (err) {
+      if (attempt === retries) throw err;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("database is locked")) {
+        await delay(500 * attempt);
+        continue;
+      }
+      throw err;
+    }
   }
-
-  const result = await submitRes.json();
-  const sessionToken = result.session_token as string;
-  const identity = result.identity as Identity;
-
-  return { identity, sessionToken };
+  throw new Error("Unreachable");
 }
 
 export async function cleanupAllIdentities(): Promise<void> {
@@ -113,6 +126,7 @@ export async function cleanupAllIdentities(): Promise<void> {
   for (const id of identities.map((i) => i.id)) {
     try {
       await deleteIdentity(id);
+      await delay(100);
     } catch {
       // ignore
     }

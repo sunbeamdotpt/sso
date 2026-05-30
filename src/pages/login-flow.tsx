@@ -218,8 +218,6 @@ export function LoginFlowPage() {
         )}
 
         <div className={footer}>
-          <Link to="/registration" className={link}>Create account</Link>
-          <span style={{ color: "text.muted" }}>·</span>
           <Link to="/recovery" className={link}>Forgot password?</Link>
         </div>
       </div>
