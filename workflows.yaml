@@ -1,8 +1,8 @@
 # workflows.yaml -- SSO CI pipeline
 #
 # Runs on every push via wfe-server webhook → ci workflow.
-# Hybrid app: Deno HTTP server (main.ts + server/) fronts a Vite/React
-# UI (ui/). Dockerfile is three-stage (node → deno → distroless).
+# Hybrid app: Deno HTTP server (main.ts + server/) with Vite/React UI (src/).
+# Dockerfile is two-stage (deno-builder → distroless).
 #
 # On mainline: tag → image → release. No publish — private admin UI.
 #
@@ -81,14 +81,13 @@ workflows:
             echo "##wfe[output checkout_ok=true]"
             echo "##wfe[output commit=$COMMIT]"
 
-  # === lint: deno fmt/lint for server + tsc for ui ===
+  # === lint: deno fmt/lint ===
 
   - id: lint
     name: Lint
     version: 1
     outputs:
       deno_ok: bool
-      typecheck_ok: bool
     steps:
       - name: deno-fmt-lint
         type: kubernetes
@@ -99,45 +98,31 @@ workflows:
           run: |
             set -euo pipefail
             cd /workspace/sso
-            deno fmt --check main.ts server/ deno.json
-            deno lint main.ts server/
+            deno fmt --check main.ts server/ src/ deno.json
+            deno lint main.ts server/ src/
             echo "##wfe[output deno_ok=true]"
 
-      - name: ui-typecheck
-        type: kubernetes
-        outputs:
-          - name: typecheck_ok
-        config:
-          <<: *node_config
-          run: |
-            set -euo pipefail
-            cd /workspace/sso/ui
-            npm ci
-            npx tsc --noEmit
-            echo "##wfe[output typecheck_ok=true]"
-
-  # === test-unit: vitest for the UI ===
+  # === test-unit: deno tests ===
 
   - id: test-unit
     name: Unit Tests
     version: 1
     outputs:
-      ui_ok: bool
+      test_ok: bool
     steps:
-      - name: ui-vitest
+      - name: deno-test
         type: kubernetes
         outputs:
-          - name: ui_ok
+          - name: test_ok
         config:
-          <<: *node_config
+          <<: *deno_config
           run: |
             set -euo pipefail
-            cd /workspace/sso/ui
-            npm ci
-            npm test
-            echo "##wfe[output ui_ok=true]"
+            cd /workspace/sso
+            deno test -A --location http://localhost src/
+            echo "##wfe[output test_ok=true]"
 
-  # === tag: read version from package.json ===
+  # === tag: read version from deno.json ===
 
   - id: tag
     name: Tag Release
@@ -152,11 +137,11 @@ workflows:
         outputs:
           - name: version
         config:
-          <<: *node_config
+          <<: *deno_config
           run: |
             set -euo pipefail
             cd /workspace/sso
-            VERSION=$(node -e "process.stdout.write(require('./package.json').version)")
+            VERSION=$(cat deno.json | deno eval "const d=JSON.parse(await Deno.readTextFile('/dev/stdin')); console.log(d.version)")
             echo "Version: $VERSION"
             echo "##wfe[output version=$VERSION]"
 
@@ -196,7 +181,7 @@ workflows:
             git push origin "$TAG"
             echo "##wfe[output tag_created=true]"
 
-  # === image: build the three-stage container via buildkitd ===
+  # === image: build the two-stage container via buildkitd ===
 
   - id: image
     name: Build Image
@@ -261,7 +246,7 @@ workflows:
             TAG="v${VERSION}"
             tea login add --name sunbeam --url https://src.sunbeam.pt --token "$TEA_TOKEN" 2>/dev/null || true
             if tea release create \
-              --repo studio/admin-ui \
+              --repo studio/sso \
               --tag "$TAG" \
               --title "$TAG" \
               --note "Container: \`src.sunbeam.pt/studio/sso:${VERSION}\`" 2>&1; then
@@ -269,7 +254,7 @@ workflows:
             else
               echo "##wfe[output release_created=false]"
             fi
-            echo "##wfe[output release_url=https://src.sunbeam.pt/studio/admin-ui/releases/tag/${TAG}]"
+            echo "##wfe[output release_url=https://src.sunbeam.pt/studio/sso/releases/tag/${TAG}]"
 
   # === ci: top-level orchestrator ===
 
@@ -282,7 +267,7 @@ workflows:
       branch: string?
     outputs:
       version: string
-      ui_ok: bool
+      test_ok: bool
       image_pushed: bool
       released: bool
 
@@ -299,7 +284,6 @@ workflows:
         type: workflow
         outputs:
           - name: deno_ok
-          - name: typecheck_ok
         config:
           workflow: lint
           version: 1
@@ -307,7 +291,7 @@ workflows:
       - name: run-tests
         type: workflow
         outputs:
-          - name: ui_ok
+          - name: test_ok
         config:
           workflow: test-unit
           version: 1

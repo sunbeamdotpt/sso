@@ -4,7 +4,6 @@ import { resolve } from "node:path";
 import { statSync } from "node:fs";
 
 const styledSystem = resolve(__dirname, "styled-system");
-const beamUiStyledSystem = resolve(__dirname, "../../libs/beam-ui/packages/beam-ui/styled-system");
 
 /**
  * Stub out beam-ui's optional deps that this app never imports.
@@ -104,9 +103,7 @@ function styledSystemResolver(): Plugin {
     enforce: "pre",
     resolveId(id, importer) {
       if (!id.startsWith("styled-system")) return;
-      const base = importer && importer.includes("beam-ui")
-        ? beamUiStyledSystem
-        : styledSystem;
+      const base = styledSystem;
       const subpath = id.slice("styled-system".length).replace(/^\//, "");
       const resolved = subpath ? resolve(base, subpath) : base;
       // If the resolved path is a directory, point to its index module so

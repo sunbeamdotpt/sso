@@ -57,7 +57,7 @@ app.delete("/api/avatar", deleteAvatar);
 // Proxy all other /api/* requests to Kratos Admin (admin required via authMiddleware)
 app.all("/api/*", proxyHandler);
 
-// Static files from ui/dist
+// Static files from dist
 app.use(
   "/*",
   serveStatic({
