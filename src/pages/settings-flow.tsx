@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { Link } from "@tanstack/react-router";
 import { useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
-import { Button, TextInput, Toast } from "@sunbeam/beam-ui";
+import { Button, TextInput, Toast, Icon } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
 import { submitFlow } from "../api/flows.ts";
 import { findNodesByGroup, findNodeByName } from "../api/types.ts";
@@ -216,7 +217,15 @@ export function SettingsFlowPage() {
 
   return (
     <div className={container}>
-      <h1 className={title}>Settings</h1>
+      <div className={header}>
+        <h1 className={title}>Settings</h1>
+        <div className={headerActions}>
+          <Link to="/" className={ghostLink}>
+            <Icon name="arrow_back" size={16} />
+            Back
+          </Link>
+        </div>
+      </div>
 
       {query.isLoading && <p className={status}>Loading…</p>}
       {query.error && <p className={errorText}>Error: {query.error.message}</p>}
@@ -334,14 +343,16 @@ export function SettingsFlowPage() {
             ) : (
               <div className={sectionBody}>
                 <p className={status}>TOTP is not set up.</p>
-                <Button
-                  onClick={async () => {
-                    await handleSubmit({}, "totp");
-                    setView("totp-verify");
-                  }}
-                >
-                  Set up TOTP
-                </Button>
+                <div className={buttonRow}>
+                  <Button
+                    onClick={async () => {
+                      await handleSubmit({}, "totp");
+                      setView("totp-verify");
+                    }}
+                  >
+                    Set up TOTP
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -713,4 +724,42 @@ const codeListItem = css({
 
 const toastWrapper = css({
   marginBottom: "16px",
+});
+
+const header = css({
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  marginBottom: "24px",
+  gap: "16px",
+  flexWrap: "wrap",
+});
+
+const headerActions = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+});
+
+const ghostLink = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "8px",
+  padding: "8px 16px",
+  borderRadius: "md",
+  border: "1px solid",
+  borderColor: "border.default",
+  backgroundColor: "transparent",
+  color: "text.secondary",
+  fontSize: "13px",
+  fontWeight: "button",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  cursor: "pointer",
+  textDecoration: "none",
+  transition: "all 0.15s",
+  _hover: {
+    color: "text.primary",
+    backgroundColor: "bg.card",
+  },
 });
