@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
-import { Button, TextInput, Toast, Icon } from "@sunbeam/beam-ui";
+import { Button, TextInput, Toast, Icon, ScrollArea } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
 import { submitFlow } from "../api/flows.ts";
 import { findNodesByGroup, findNodeByName } from "../api/types.ts";
@@ -216,7 +216,8 @@ export function SettingsFlowPage() {
   }, [passkeyEnrolling, cancelPasskeyEnrollment]);
 
   return (
-    <div className={container}>
+    <ScrollArea maxHeight="calc(100vh - 88px)" direction="vertical">
+      <div className={container}>
       <div className={header}>
         <h1 className={title}>Settings</h1>
         <div className={headerActions}>
@@ -607,12 +608,14 @@ export function SettingsFlowPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </ScrollArea>
   );
 }
 
 const container = css({
   padding: "24px",
+  paddingBottom: "48px",
   maxWidth: "600px",
   margin: "0 auto",
 });
