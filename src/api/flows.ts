@@ -6,6 +6,7 @@ export interface FlowSubmitResult {
   session?: { identity: { id: string; traits: Record<string, unknown> }; authenticator_assurance_level?: string };
   flow?: LoginFlow | SettingsFlow;
   error?: string;
+  redirect_browser_to?: string;
 }
 
 function getActionPath(action: string): string {
@@ -49,6 +50,9 @@ export async function submitFlow(
   if (!res.ok) {
     if (data?.ui) {
       return { success: false, flow: data as LoginFlow | SettingsFlow, error: getFlowError(data.ui) };
+    }
+    if (data?.redirect_browser_to) {
+      return { success: false, redirect_browser_to: data.redirect_browser_to };
     }
     const isExpired = data?.error?.id === "self_service_flow_expired" || data?.error?.code === 410;
     if (isExpired) {

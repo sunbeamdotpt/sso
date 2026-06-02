@@ -104,6 +104,7 @@ export interface SettingsFlow {
   request_url?: string;
   ui?: UIFlow;
   identity?: Identity;
+  return_to?: string;
 }
 
 export interface VerificationFlow {

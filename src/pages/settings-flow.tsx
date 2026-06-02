@@ -5,9 +5,16 @@ import { Button, TextInput, Toast } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
 import { submitFlow } from "../api/flows.ts";
 import { findNodesByGroup, findNodeByName } from "../api/types.ts";
-import type { SettingsFlow } from "../api/types.ts";
+import type { SettingsFlow, UIFlow, UINode } from "../api/types.ts";
 
 type View = "list" | "totp-verify" | "backup-codes";
+
+function getOidcNodes(ui: UIFlow | undefined) {
+  const nodes = findNodesByGroup(ui, "oidc");
+  const linkNodes = nodes.filter((n) => n.attributes.name.startsWith("link"));
+  const unlinkNodes = nodes.filter((n) => n.attributes.name.startsWith("unlink"));
+  return { linkNodes, unlinkNodes };
+}
 
 export function SettingsFlowPage() {
   const [view, setView] = useState<View>("list");
@@ -71,7 +78,16 @@ export function SettingsFlowPage() {
   const handleSubmit = useCallback(
     async (body: Record<string, unknown>, method: string) => {
       if (!currentFlow?.ui) return;
+      const isLinkOperation = Object.keys(body).some((k) => k.startsWith("link_"));
       const result = await submitFlow(currentFlow as { ui: typeof currentFlow.ui }, body, method);
+
+      // Handle OIDC link redirect (Kratos returns 422 with redirect_browser_to)
+      const redirectTo = result.redirect_browser_to ?? (result.flow as SettingsFlow | undefined)?.return_to;
+      if (redirectTo && method === "oidc" && isLinkOperation) {
+        window.location.href = redirectTo;
+        return;
+      }
+
       if (result.success && result.flow) {
         setFlow(result.flow as SettingsFlow);
         showToast("Success", "success");
@@ -83,6 +99,13 @@ export function SettingsFlowPage() {
       }
     },
     [currentFlow, showToast],
+  );
+
+  const handleOidcLink = useCallback(
+    (node: UINode) => {
+      handleSubmit({ [node.attributes.name]: node.attributes.value }, "oidc");
+    },
+    [handleSubmit],
   );
 
   const ui = currentFlow?.ui;
@@ -117,6 +140,8 @@ export function SettingsFlowPage() {
     (n) => n.attributes.name.includes("remove") || n.attributes.name.includes("unlink"),
   );
   const webauthnScriptNode = webauthnNodes.find((n) => n.attributes.node_type === "script");
+
+  const { linkNodes: oidcLinkNodes, unlinkNodes: oidcUnlinkNodes } = getOidcNodes(ui);
 
   useEffect(() => {
     if (!scriptContainerRef.current || !webauthnScriptNode || !passkeyEnrolling) return;
@@ -465,6 +490,58 @@ export function SettingsFlowPage() {
                 >
                   Add passkey
                 </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Connected Accounts Section */}
+          <div className={sectionCard}>
+            <h2 className={sectionTitle}>Connected Accounts</h2>
+            <div className={sectionBody}>
+              {oidcUnlinkNodes.length === 0 && oidcLinkNodes.length === 0 ? (
+                <p className={status}>No social providers available.</p>
+              ) : (
+                <>
+                  {oidcUnlinkNodes.length > 0 && (
+                    <>
+                      <p className={successText}>✓ Connected providers</p>
+                      {oidcUnlinkNodes.map((n) => (
+                        <div
+                          key={n.attributes.name}
+                          className={css({ display: "flex", alignItems: "center", justifyContent: "space-between" })}
+                        >
+                          <span className={css({ fontSize: "sm", color: "text.primary" })}>
+                            {n.meta?.label?.text ?? n.attributes.name.replace("unlink_", "")}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            onClick={() =>
+                              handleSubmit(
+                                { [n.attributes.name]: n.attributes.value },
+                                "oidc",
+                              )
+                            }
+                          >
+                            Disconnect
+                          </Button>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {oidcLinkNodes.length > 0 && (
+                    <div className={buttonRow}>
+                      {oidcLinkNodes.map((n) => (
+                        <Button
+                          key={n.attributes.name}
+                          variant="primary"
+                          onClick={() => handleOidcLink(n)}
+                        >
+                          Connect {n.meta?.label?.text ?? n.attributes.name.replace("link_", "")}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

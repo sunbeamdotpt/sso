@@ -50,7 +50,7 @@ selfservice:
     code:
       enabled: true
     oidc:
-      enabled: false
+      enabled: true
 
   flows:
     error:
