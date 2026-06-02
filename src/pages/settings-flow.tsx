@@ -123,7 +123,7 @@ export function SettingsFlowPage() {
   const totpSecretNode = findNodeByName(ui, "totp_secret");
   const totpUnlinkNode = totpNodes.find((n) => n.attributes.name?.includes("unlink"));
   const totpInputNode = findNodeByName(ui, "totp_code");
-  const isTotpEnrolled = totpNodes.length > 0 && !totpQrNode && !totpSecretNode;
+  const isTotpEnrolled = !!totpUnlinkNode && !totpQrNode && !totpSecretNode;
 
   const lookupNodes = findNodesByGroup(ui, "lookup_secret");
   const lookupCodeNodes = lookupNodes.filter(
@@ -267,7 +267,7 @@ export function SettingsFlowPage() {
                     );
                   })}
                   <div className={buttonRow}>
-                    <Button
+                    <Button variant="primary"
                       onClick={() => {
                         const body: Record<string, unknown> = {};
                         for (const node of profileNodes) {
@@ -308,7 +308,7 @@ export function SettingsFlowPage() {
                   placeholder="Enter 6-digit code"
                 />
                 <div className={buttonRow}>
-                  <Button
+                  <Button variant="primary"
                     onClick={() =>
                       handleSubmit(
                         { totp_code: totpCode, ...(totpInputNode ? { [totpInputNode.attributes.name]: totpCode } : {}) },
@@ -344,7 +344,7 @@ export function SettingsFlowPage() {
               <div className={sectionBody}>
                 <p className={status}>TOTP is not set up.</p>
                 <div className={buttonRow}>
-                  <Button
+                  <Button variant="primary"
                     onClick={async () => {
                       await handleSubmit({}, "totp");
                       setView("totp-verify");
@@ -372,7 +372,7 @@ export function SettingsFlowPage() {
                     </li>
                   ))}
                 </ul>
-                <Button
+                <Button variant="primary"
                   onClick={() => {
                     setView("list");
                     refreshFlow();
@@ -386,7 +386,7 @@ export function SettingsFlowPage() {
                 <p className={successText}>✓ Backup codes are generated</p>
                 <div className={buttonRow}>
                   {lookupRevealNode && (
-                    <Button
+                    <Button variant="primary"
                       onClick={() =>
                         handleSubmit(
                           { [lookupRevealNode.attributes.name]: lookupRevealNode.attributes.value },
@@ -415,7 +415,7 @@ export function SettingsFlowPage() {
             ) : (
               <div className={sectionBody}>
                 <p className={status}>No backup codes generated.</p>
-                <Button onClick={() => handleSubmit({}, "lookup_secret").then(() => setView("backup-codes"))}>
+                <Button variant="primary" onClick={() => handleSubmit({}, "lookup_secret").then(() => setView("backup-codes"))}>
                   Generate backup codes
                 </Button>
               </div>
@@ -484,7 +484,7 @@ export function SettingsFlowPage() {
               )}
 
               {webauthnAddNode && !passkeyEnrolling && (
-                <Button
+                <Button variant="primary"
                   onClick={async () => {
                     if (!currentFlow?.ui) return;
                     const result = await submitFlow(currentFlow as { ui: typeof currentFlow.ui }, {
@@ -578,7 +578,7 @@ export function SettingsFlowPage() {
                     onChange={(v) => setConfirmPassword(v)}
                   />
                   <div className={buttonRow}>
-                    <Button
+                    <Button variant="primary"
                       onClick={() => {
                         if (password !== confirmPassword) {
                           showToast("Passwords do not match", "error");
