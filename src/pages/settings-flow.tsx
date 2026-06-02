@@ -121,7 +121,7 @@ export function SettingsFlowPage() {
   const totpNodes = findNodesByGroup(ui, "totp");
   const totpQrNode = findNodeByName(ui, "totp_qr");
   const totpSecretNode = findNodeByName(ui, "totp_secret");
-  const totpUnlinkNode = totpNodes.find((n) => n.attributes.name.includes("unlink"));
+  const totpUnlinkNode = totpNodes.find((n) => n.attributes.name?.includes("unlink"));
   const totpInputNode = findNodeByName(ui, "totp_code");
   const isTotpEnrolled = totpNodes.length > 0 && !totpQrNode && !totpSecretNode;
 
@@ -129,16 +129,16 @@ export function SettingsFlowPage() {
   const lookupCodeNodes = lookupNodes.filter(
     (n) => n.attributes.type === "text" && n.attributes.name.startsWith("lookup_secret"),
   );
-  const lookupRegenNode = lookupNodes.find((n) => n.attributes.name.includes("regenerate"));
-  const lookupRevealNode = lookupNodes.find((n) => n.attributes.name.includes("reveal"));
+  const lookupRegenNode = lookupNodes.find((n) => n.attributes.name?.includes("regenerate"));
+  const lookupRevealNode = lookupNodes.find((n) => n.attributes.name?.includes("reveal"));
   const isLookupGenerated = lookupNodes.length > 0 && lookupCodeNodes.length === 0;
 
   const webauthnNodes = findNodesByGroup(ui, "webauthn");
   const webauthnAddNode = webauthnNodes.find(
-    (n) => n.attributes.name.includes("register") || n.attributes.name === "webauthn_register_trigger",
+    (n) => n.attributes.name?.includes("register") || n.attributes.name === "webauthn_register_trigger",
   );
   const webauthnRemoveNodes = webauthnNodes.filter(
-    (n) => n.attributes.name.includes("remove") || n.attributes.name.includes("unlink"),
+    (n) => n.attributes.name?.includes("remove") || n.attributes.name?.includes("unlink"),
   );
   const webauthnScriptNode = webauthnNodes.find((n) => n.attributes.node_type === "script");
 
