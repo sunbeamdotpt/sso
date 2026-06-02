@@ -11,7 +11,6 @@ import { IdentitiesPage } from "./pages/identities.tsx";
 import { IdentityDetailPage } from "./pages/identity-detail.tsx";
 import { SchemaDetailPage } from "./pages/schema-detail.tsx";
 import { LoginFlowPage } from "./pages/login-flow.tsx";
-import { RegistrationFlowPage } from "./pages/registration-flow.tsx";
 import { RecoveryFlowPage } from "./pages/recovery-flow.tsx";
 import { SettingsFlowPage } from "./pages/settings-flow.tsx";
 import { VerificationFlowPage } from "./pages/verification-flow.tsx";

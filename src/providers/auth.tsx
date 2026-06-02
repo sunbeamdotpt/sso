@@ -41,7 +41,7 @@ export async function validateSession(): Promise<boolean> {
 }
 
 /**
- * Store user session in the auth store after successful login/registration.
+ * Store user session in the auth store after successful login.
  * The actual session is managed by Kratos via HTTP-only cookie.
  */
 export function setUserSession(identity: Identity, aal?: string) {

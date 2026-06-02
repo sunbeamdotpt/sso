@@ -11,7 +11,6 @@ const KRATOS_ADMIN_URL =
 // Routes that require no authentication at all
 const PUBLIC_ROUTES = new Set([
   "/login",
-  "/registration",
   "/recovery",
   "/verification",
   "/error",

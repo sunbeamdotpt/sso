@@ -204,7 +204,7 @@ export function App() {
     return () => document.removeEventListener("sunbeam:themechange", handler);
   }, [setTheme]);
 
-  // When not logged in, show only the page content (login/registration/recovery).
+  // When not logged in, show only the page content (login/recovery).
   // No sidebar, no app header, no shell chrome.
   if (!isAuthenticated) {
     return (

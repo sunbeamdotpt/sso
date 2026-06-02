@@ -25,27 +25,6 @@ test.describe("Self-Service Flows", () => {
     });
   });
 
-  test.describe("Registration Flow", () => {
-    test.beforeEach(async ({ page }) => {
-      await page.goto("/registration");
-    });
-
-    test("page heading and structure", async ({ page }) => {
-      await expect(page.getByRole("heading", { name: "Registration Flow" })).toBeVisible();
-    });
-
-    test("displays flow metadata", async ({ page }) => {
-      await expect(page.locator("span", { hasText: /^Flow ID$/ }).first()).toBeVisible({ timeout: 10_000 });
-      await expect(page.locator("span", { hasText: /^Type$/ }).first()).toBeVisible();
-    });
-
-    test("renders JSON payload", async ({ page }) => {
-      const jsonBlock = page.locator("pre").first();
-      await expect(jsonBlock).toBeVisible();
-      const text = await jsonBlock.textContent();
-      expect(text).toContain('"id"');
-    });
-  });
 
   test.describe("Recovery Flow", () => {
     test.beforeEach(async ({ page }) => {
