@@ -45,7 +45,7 @@ selfservice:
       config:
         rp:
           id: localhost
-          origin: http://localhost:3000
+          origin: http://localhost:5175
           display_name: Sunbeam
     code:
       enabled: true

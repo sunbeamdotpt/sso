@@ -1,11 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
 import { Button, TextInput, Toast } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
 import { submitFlow } from "../api/flows.ts";
-import { findNodesByGroup, findNodeByName, getFlowError } from "../api/types.ts";
-import type { SettingsFlow, UINode } from "../api/types.ts";
+import { findNodesByGroup, findNodeByName } from "../api/types.ts";
+import type { SettingsFlow } from "../api/types.ts";
 
 type View = "list" | "totp-verify" | "backup-codes";
 
@@ -17,6 +17,11 @@ export function SettingsFlowPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [profileValues, setProfileValues] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [passkeyEnrolling, setPasskeyEnrolling] = useState(false);
+  const scriptContainerRef = useRef<HTMLDivElement>(null);
+  const pollCountRef = useRef(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const query = useRestQuery<SettingsFlow>(api, "/self-service/settings/browser", {
     queryKey: ["settings-flow"],
@@ -41,6 +46,25 @@ export function SettingsFlowPage() {
       }
     } catch {
       // ignore refresh errors
+    }
+  }, []);
+
+  const cancelPasskeyEnrollment = useCallback(() => {
+    setPasskeyEnrolling(false);
+    pollCountRef.current = 0;
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (scriptContainerRef.current) {
+      const container = scriptContainerRef.current;
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
     }
   }, []);
 
@@ -85,6 +109,86 @@ export function SettingsFlowPage() {
   const lookupRevealNode = lookupNodes.find((n) => n.attributes.name.includes("reveal"));
   const isLookupGenerated = lookupNodes.length > 0 && lookupCodeNodes.length === 0;
 
+  const webauthnNodes = findNodesByGroup(ui, "webauthn");
+  const webauthnAddNode = webauthnNodes.find(
+    (n) => n.attributes.name.includes("register") || n.attributes.name === "webauthn_register_trigger",
+  );
+  const webauthnRemoveNodes = webauthnNodes.filter(
+    (n) => n.attributes.name.includes("remove") || n.attributes.name.includes("unlink"),
+  );
+  const webauthnScriptNode = webauthnNodes.find((n) => n.attributes.node_type === "script");
+
+  useEffect(() => {
+    if (!scriptContainerRef.current || !webauthnScriptNode || !passkeyEnrolling) return;
+
+    const container = scriptContainerRef.current;
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+
+    const script = document.createElement("script");
+    const attrs = webauthnScriptNode.attributes as unknown as Record<string, unknown>;
+
+    if (typeof attrs.src === "string") {
+      script.src = attrs.src;
+      if (attrs.async === true) script.async = true;
+      if (typeof attrs.referrerpolicy === "string") script.referrerPolicy = attrs.referrerpolicy;
+      if (typeof attrs.crossorigin === "string") script.crossOrigin = attrs.crossorigin;
+      if (typeof attrs.integrity === "string") script.integrity = attrs.integrity;
+      if (typeof attrs.id === "string") script.id = attrs.id;
+      if (typeof attrs.type === "string") script.type = attrs.type;
+    } else if (typeof attrs.value === "string") {
+      script.textContent = attrs.value;
+      if (typeof attrs.type === "string") script.type = attrs.type;
+    }
+
+    container.appendChild(script);
+
+    return () => {
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
+    };
+  }, [webauthnScriptNode, passkeyEnrolling]);
+
+  useEffect(() => {
+    if (!passkeyEnrolling) return;
+    pollCountRef.current = 0;
+    intervalRef.current = setInterval(() => {
+      pollCountRef.current += 1;
+      if (pollCountRef.current >= 20) {
+        cancelPasskeyEnrollment();
+        return;
+      }
+      refreshFlow();
+    }, 3000);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [passkeyEnrolling, refreshFlow, cancelPasskeyEnrollment]);
+
+  useEffect(() => {
+    if (!webauthnScriptNode && passkeyEnrolling) {
+      setPasskeyEnrolling(false);
+    }
+  }, [webauthnScriptNode, passkeyEnrolling]);
+
+  useEffect(() => {
+    if (!passkeyEnrolling) return;
+    timeoutRef.current = setTimeout(() => {
+      cancelPasskeyEnrollment();
+    }, 60000);
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [passkeyEnrolling, cancelPasskeyEnrollment]);
+
   return (
     <div className={container}>
       <h1 className={title}>Settings</h1>
@@ -97,7 +201,7 @@ export function SettingsFlowPage() {
           <Toast
             message={toast.message}
             variant={toast.type}
-            visible={true}
+            visible
             onDismiss={() => setToast(null)}
           />
         </div>
@@ -280,6 +384,89 @@ export function SettingsFlowPage() {
                 </Button>
               </div>
             )}
+          </div>
+
+          {/* Passkeys Section */}
+          <div className={sectionCard}>
+            <h2 className={sectionTitle}>Passkeys</h2>
+            <div className={sectionBody}>
+              {passkeyEnrolling && webauthnScriptNode && ui && (
+                <div style={{ display: "none" }}>
+                  <form action={ui.action} method="POST">
+                    <input
+                      type="hidden"
+                      name="csrf_token"
+                      value={String(findNodeByName(ui, "csrf_token")?.attributes.value ?? "")}
+                    />
+                    <input type="hidden" name="method" value="webauthn" />
+                    {webauthnAddNode && (
+                      <input
+                        type="hidden"
+                        name={webauthnAddNode.attributes.name}
+                        value={String(webauthnAddNode.attributes.value ?? "")}
+                      />
+                    )}
+                  </form>
+                  <div ref={scriptContainerRef} />
+                </div>
+              )}
+
+              {passkeyEnrolling && webauthnScriptNode && (
+                <div className={buttonRow}>
+                  <p className={status}>Follow your browser&apos;s prompt to complete passkey registration.</p>
+                  <Button variant="ghost" onClick={cancelPasskeyEnrollment}>
+                    Cancel
+                  </Button>
+                </div>
+              )}
+
+              {webauthnRemoveNodes.length > 0 ? (
+                <>
+                  <p className={successText}>✓ Passkeys are registered</p>
+                  {webauthnRemoveNodes.map((node) => (
+                    <div
+                      key={node.attributes.name}
+                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                    >
+                      <span>{node.meta?.label?.text ?? "Passkey"}</span>
+                      <Button
+                        variant="ghost"
+                        onClick={() =>
+                          handleSubmit(
+                            { [node.attributes.name]: node.attributes.value },
+                            "webauthn",
+                          )
+                        }
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                !passkeyEnrolling && <p className={status}>No passkeys registered.</p>
+              )}
+
+              {webauthnAddNode && !passkeyEnrolling && (
+                <Button
+                  onClick={async () => {
+                    if (!currentFlow?.ui) return;
+                    const result = await submitFlow(currentFlow as { ui: typeof currentFlow.ui }, {
+                      [webauthnAddNode.attributes.name]: webauthnAddNode.attributes.value,
+                    }, "webauthn");
+                    if (result.success && result.flow) {
+                      setFlow(result.flow as SettingsFlow);
+                      setPasskeyEnrolling(true);
+                    } else {
+                      showToast(result.error ?? "Failed to start passkey enrollment", "error");
+                      if (result.flow) setFlow(result.flow as SettingsFlow);
+                    }
+                  }}
+                >
+                  Add passkey
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Password Section */}
