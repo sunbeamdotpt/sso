@@ -91,6 +91,7 @@ export function SettingsFlowPage() {
 
       if (result.success && result.flow) {
         setFlow(result.flow as SettingsFlow);
+        setView("list");
         showToast("Success", "success");
       } else {
         showToast(result.error ?? "Something went wrong", "error");
@@ -119,8 +120,8 @@ export function SettingsFlowPage() {
   const passwordInputNode = findNodeByName(ui, "password");
 
   const totpNodes = findNodesByGroup(ui, "totp");
-  const totpQrNode = findNodeByName(ui, "totp_qr");
-  const totpSecretNode = findNodeByName(ui, "totp_secret");
+  const totpQrNode = totpNodes.find((n) => n.type === "img" || (n.attributes as Record<string, unknown>).id === "totp_qr");
+  const totpSecretNode = totpNodes.find((n) => n.type === "text" || (n.attributes as Record<string, unknown>).id === "totp_secret_key");
   const totpUnlinkNode = totpNodes.find((n) => n.attributes.name?.includes("unlink"));
   const totpInputNode = findNodeByName(ui, "totp_code");
   const isTotpEnrolled = !!totpUnlinkNode && !totpQrNode && !totpSecretNode;
@@ -293,13 +294,20 @@ export function SettingsFlowPage() {
               <div className={sectionBody}>
                 <img
                   className={qrImage}
-                  src={String(totpQrNode.attributes.value)}
+                  src={String((totpQrNode.attributes as Record<string, unknown>).src ?? totpQrNode.attributes.value)}
                   alt="TOTP QR code"
                 />
                 {totpSecretNode && (
                   <div className={secretBox}>
                     <span className={secretLabel}>Secret:</span>
-                    <code className={secretValue}>{String(totpSecretNode.attributes.value)}</code>
+                    <code className={secretValue}>
+                      {String(
+                        ((totpSecretNode.attributes as Record<string, unknown>).text as Record<string, unknown>)?.text
+                        ?? ((totpSecretNode.attributes as Record<string, unknown>).text as Record<string, unknown>)?.context?.secret
+                        ?? totpSecretNode.attributes.value
+                        ?? ""
+                      )}
+                    </code>
                   </div>
                 )}
                 <TextInput

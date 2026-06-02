@@ -74,14 +74,46 @@ export async function createAuthenticatedIdentity(
 ): Promise<{ identity: Identity; sessionToken: string }> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      // 1. Create a registration flow
+      // 1. Create identity with password via admin API
+      const identityRes = await adminFetch("/identities", {
+        method: "POST",
+        body: JSON.stringify({
+          schema_id: "default",
+          state: "active",
+          traits: { email },
+          credentials: {
+            password: {
+              config: { password },
+            },
+          },
+        }),
+      });
+      const identity = await identityRes.json() as Identity & {
+        verifiable_addresses?: Array<{ id: string }>;
+      };
+
+      // 2. Verify email address so login hook doesn't block
+      await adminFetch(`/identities/${identity.id}`, {
+        method: "PATCH",
+        body: JSON.stringify([
+          { op: "replace", path: "/verifiable_addresses/0/verified", value: true },
+          { op: "replace", path: "/verifiable_addresses/0/status", value: "completed" },
+        ]),
+      });
+
+      // 3. Create login API flow
       const flowRes = await fetch(
-        "http://localhost:4433/self-service/registration/api",
+        "http://localhost:4433/self-service/login/api",
         { headers: { Accept: "application/json" } },
       );
-      const flow = await flowRes.json();
+      const flow = await flowRes.json() as {
+        ui: {
+          action: string;
+          nodes: Array<{ attributes: { name: string; value: string } }>;
+        };
+      };
 
-      // 2. Submit registration
+      // 4. Submit login
       const submitRes = await fetch(flow.ui.action, {
         method: "POST",
         headers: {
@@ -91,21 +123,19 @@ export async function createAuthenticatedIdentity(
         body: JSON.stringify({
           method: "password",
           password,
-          traits: { email },
-          csrf_token: flow.ui.nodes.find((n: Record<string, unknown>) =>
-            (n.attributes as Record<string, unknown>)?.name === "csrf_token"
-          )?.attributes?.value ?? "",
+          identifier: email,
+          csrf_token: flow.ui.nodes.find((n) => n.attributes.name === "csrf_token")
+            ?.attributes?.value ?? "",
         }),
       });
 
       if (!submitRes.ok) {
         const body = await submitRes.text();
-        throw new Error(`Registration failed: ${submitRes.status} ${body}`);
+        throw new Error(`Login failed: ${submitRes.status} ${body}`);
       }
 
-      const result = await submitRes.json();
-      const sessionToken = result.session_token as string;
-      const identity = result.identity as Identity;
+      const result = await submitRes.json() as { session_token: string };
+      const sessionToken = result.session_token;
 
       return { identity, sessionToken };
     } catch (err) {
