@@ -415,9 +415,11 @@ export function SettingsFlowPage() {
             ) : (
               <div className={sectionBody}>
                 <p className={status}>No backup codes generated.</p>
-                <Button variant="primary" onClick={() => handleSubmit({}, "lookup_secret").then(() => setView("backup-codes"))}>
-                  Generate backup codes
-                </Button>
+                <div className={buttonRow}>
+                  <Button variant="primary" onClick={() => handleSubmit({}, "lookup_secret").then(() => setView("backup-codes"))}>
+                    Generate backup codes
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -484,23 +486,25 @@ export function SettingsFlowPage() {
               )}
 
               {webauthnAddNode && !passkeyEnrolling && (
-                <Button variant="primary"
-                  onClick={async () => {
-                    if (!currentFlow?.ui) return;
-                    const result = await submitFlow(currentFlow as { ui: typeof currentFlow.ui }, {
-                      [webauthnAddNode.attributes.name]: webauthnAddNode.attributes.value,
-                    }, "webauthn");
-                    if (result.success && result.flow) {
-                      setFlow(result.flow as SettingsFlow);
-                      setPasskeyEnrolling(true);
-                    } else {
-                      showToast(result.error ?? "Failed to start passkey enrollment", "error");
-                      if (result.flow) setFlow(result.flow as SettingsFlow);
-                    }
-                  }}
-                >
-                  Add passkey
-                </Button>
+                <div className={buttonRow}>
+                  <Button variant="primary"
+                    onClick={async () => {
+                      if (!currentFlow?.ui) return;
+                      const result = await submitFlow(currentFlow as { ui: typeof currentFlow.ui }, {
+                        [webauthnAddNode.attributes.name]: webauthnAddNode.attributes.value,
+                      }, "webauthn");
+                      if (result.success && result.flow) {
+                        setFlow(result.flow as SettingsFlow);
+                        setPasskeyEnrolling(true);
+                      } else {
+                        showToast(result.error ?? "Failed to start passkey enrollment", "error");
+                        if (result.flow) setFlow(result.flow as SettingsFlow);
+                      }
+                    }}
+                  >
+                    Add passkey
+                  </Button>
+                </div>
               )}
             </div>
           </div>
