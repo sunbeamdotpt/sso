@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useParams, Link, useNavigate } from "@tanstack/react-router";
-import { useRestQuery, useRestMutation } from "@sunbeam/g2v";
+import { useRestQuery, useRestMutation, useAuth } from "@sunbeam/g2v";
 import { Badge, Tabs, Icon, Button, ScrollArea, Toast, TextInput, Checkbox, TagsInput } from "@sunbeam/beam-ui";
 import { css } from "styled-system/css";
 import { api } from "../api/client.ts";
@@ -743,6 +743,12 @@ export function IdentityDetailPage() {
   const { id } = useParams({ from: "/identities/$id" });
   const [activeTab, setActiveTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
+  const { claims } = useAuth();
+  const userClaims = claims as { sub?: string; isAdmin?: boolean } | undefined;
+  const isAdmin = userClaims?.isAdmin ?? false;
+  const isOwner = userClaims?.sub === id;
+  const canEdit = isOwner || isAdmin || USE_DUMMY_DATA;
+  const canDelete = isAdmin || USE_DUMMY_DATA;
 
   /* Toast state */
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info"; visible: boolean }>({
@@ -876,27 +882,31 @@ export function IdentityDetailPage() {
                 </>
               ) : (
                 <>
-                  <Button variant="ghost" onClick={enterEditMode}>
-                    <Icon name="edit" size={16} />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="dark"
-                    className={css({ backgroundColor: "error", _hover: { opacity: 0.9 } })}
-                    onClick={() => {
-                      if (confirm("Delete this identity? This action cannot be undone.")) {
-                        deleteIdentity.mutate(undefined, {
-                          onSuccess: () => {
-                            navigate({ to: "/identities" });
-                          },
-                        });
-                      }
-                    }}
-                    disabled={deleteIdentity.isPending}
-                  >
-                    <Icon name="delete" size={16} />
-                    {deleteIdentity.isPending ? "Deleting…" : "Delete"}
-                  </Button>
+                  {canEdit && (
+                    <Button variant="ghost" onClick={enterEditMode}>
+                      <Icon name="edit" size={16} />
+                      Edit
+                    </Button>
+                  )}
+                  {canDelete && (
+                    <Button
+                      variant="dark"
+                      className={css({ backgroundColor: "error", _hover: { opacity: 0.9 } })}
+                      onClick={() => {
+                        if (confirm("Delete this identity? This action cannot be undone.")) {
+                          deleteIdentity.mutate(undefined, {
+                            onSuccess: () => {
+                              navigate({ to: "/identities" });
+                            },
+                          });
+                        }
+                      }}
+                      disabled={deleteIdentity.isPending}
+                    >
+                      <Icon name="delete" size={16} />
+                      {deleteIdentity.isPending ? "Deleting…" : "Delete"}
+                    </Button>
+                  )}
                 </>
               )}
             </div>

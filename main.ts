@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { serveStatic } from "hono/deno";
 import {
   authMiddleware,
+  identityOwnershipMiddleware,
   revokeAllSessionsHandler,
   sessionHandler,
 } from "./server/auth.ts";
@@ -53,6 +54,9 @@ app.post("/api/hydra/login/accept", acceptLogin);
 app.put("/api/avatar", uploadAvatar);
 app.get("/api/avatar/:id", getAvatar);
 app.delete("/api/avatar", deleteAvatar);
+
+// Identity ownership checks (must come before catch-all /api/* proxy)
+app.use("/api/identities/:id", identityOwnershipMiddleware);
 
 // Proxy all other /api/* requests to Kratos Admin (admin required via authMiddleware)
 app.all("/api/*", proxyHandler);

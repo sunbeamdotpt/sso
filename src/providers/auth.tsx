@@ -22,6 +22,19 @@ export async function validateSession(): Promise<boolean> {
     }
     const session = (await res.json()) as Session;
     if (session.active) {
+      let isAdmin = false;
+      try {
+        const adminRes = await fetch("/api/auth/session", {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        });
+        const adminData = adminRes.ok ? await adminRes.json() : {};
+        isAdmin = adminData.isAdmin ?? false;
+      } catch {
+        // Default to non-admin on error
+        isAdmin = false;
+      }
+
       authActions.loginSuccess({
         accessToken: "cookie",
         claims: {
@@ -29,6 +42,7 @@ export async function validateSession(): Promise<boolean> {
           email: (session.identity.traits as Record<string, string>)?.email,
           name: getDisplayName(session.identity),
           aal: session.authenticator_assurance_level ?? "aal1",
+          isAdmin,
         },
       });
       return true;
@@ -44,7 +58,19 @@ export async function validateSession(): Promise<boolean> {
  * Store user session in the auth store after successful login.
  * The actual session is managed by Kratos via HTTP-only cookie.
  */
-export function setUserSession(identity: Identity, aal?: string) {
+export async function setUserSession(identity: Identity, aal?: string) {
+  let isAdmin = false;
+  try {
+    const adminRes = await fetch("/api/auth/session", {
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    });
+    const adminData = adminRes.ok ? await adminRes.json() : {};
+    isAdmin = adminData.isAdmin ?? false;
+  } catch {
+    isAdmin = false;
+  }
+
   authActions.loginSuccess({
     accessToken: "cookie",
     claims: {
@@ -52,6 +78,7 @@ export function setUserSession(identity: Identity, aal?: string) {
       email: (identity.traits as Record<string, string>)?.email,
       name: getDisplayName(identity),
       aal: aal ?? "aal1",
+      isAdmin,
     },
   });
 }

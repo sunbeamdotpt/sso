@@ -140,12 +140,57 @@ function isAdminRoute(path: string): boolean {
     "/schemas",
   ];
   for (const prefix of adminPrefixes) {
-    if (path === prefix || path.startsWith(prefix + "/") ||
-      path.startsWith(prefix + "?")) {
+    if (
+      (path === prefix || path.startsWith(prefix + "/") ||
+        path.startsWith(prefix + "?")) &&
+      // Allow non-admins to view/edit their own identity
+      !(prefix === "/api/identities" &&
+        /^\/api\/identities\/[^\/]+$/.test(path)) &&
+      !(prefix === "/identities" &&
+        /^\/identities\/[^\/]+$/.test(path))
+    ) {
       return true;
     }
   }
   return false;
+}
+
+export async function identityOwnershipMiddleware(c: Context, next: Next) {
+  const path = c.req.path;
+  const match = path.match(/^\/api\/identities\/([^\/]+)$/);
+  if (!match) {
+    return await next();
+  }
+
+  const targetId = match[1];
+  const identity = c.get("identity");
+  const isAdmin = c.get("isAdmin");
+
+  // Allow GET for owner or admin
+  if (c.req.method === "GET") {
+    if (identity?.id === targetId || isAdmin) {
+      return await next();
+    }
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  // Allow PUT for owner or admin
+  if (c.req.method === "PUT") {
+    if (identity?.id === targetId || isAdmin) {
+      return await next();
+    }
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  // Allow DELETE for admin only
+  if (c.req.method === "DELETE") {
+    if (isAdmin) {
+      return await next();
+    }
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  await next();
 }
 
 export async function authMiddleware(c: Context, next: Next) {
