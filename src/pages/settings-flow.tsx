@@ -84,7 +84,7 @@ export function SettingsFlowPage() {
       // Handle OIDC link redirect (Kratos returns 422 with redirect_browser_to)
       const redirectTo = result.redirect_browser_to ?? (result.flow as SettingsFlow | undefined)?.return_to;
       if (redirectTo && method === "oidc" && isLinkOperation) {
-        window.location.href = redirectTo;
+        globalThis.location.href = redirectTo;
         return;
       }
 

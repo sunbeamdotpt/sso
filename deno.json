@@ -12,6 +12,9 @@
     "lint": "deno lint src/",
     "fmt": "deno fmt src/",
     "test": "deno test -A --location http://localhost src/",
+    "test:unit": "deno run -A npm:vitest@^3.0.0 run",
+    "test:unit:watch": "deno run -A npm:vitest@^3.0.0",
+    "test:unit:coverage": "deno run -A npm:vitest@^3.0.0 run --coverage",
     "test:e2e": "deno run -A npm:playwright test",
     "test:e2e:ui": "deno run -A npm:playwright test --ui",
     "test:e2e:debug": "deno run -A npm:playwright test --debug"
@@ -36,6 +39,11 @@
     "@pandacss/dev": "npm:@pandacss/dev@^1.9.1",
     "vite": "npm:vite@^6.0.0",
     "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^4.3.0",
+    "vitest": "npm:vitest@^3.0.0",
+    "@vitest/coverage-v8": "npm:@vitest/coverage-v8@^3.0.0",
+    "happy-dom": "npm:happy-dom@^17.0.0",
+    "@testing-library/react": "npm:@testing-library/react@^16.0.0",
+    "@testing-library/jest-dom": "npm:@testing-library/jest-dom@^6.0.0",
     "typescript": "npm:typescript@^5.6.0",
     "styled-system/css": "./styled-system/css/index.mjs",
     "styled-system/": "./styled-system/"
