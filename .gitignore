@@ -1,10 +1,9 @@
 # Dependencies
-ui/node_modules/
+node_modules/
 
 # Build artifacts
-ui/dist/
-sso
-sso-*
+dist/
+*.local
 
 # Dev/editor
 .vscode
@@ -21,5 +20,9 @@ Thumbs.db
 .deno/
 
 # Lock files managed per-environment
-ui/package-lock.json
 *.timestamp-*
+
+# Test output
+test-results/
+e2e/screenshots/
+coverage/

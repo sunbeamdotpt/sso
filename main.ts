@@ -61,7 +61,7 @@ app.all("/api/*", proxyHandler);
 app.use(
   "/*",
   serveStatic({
-    root: "./ui/dist",
+    root: "./dist",
   }),
 );
 
@@ -69,7 +69,7 @@ app.use(
 app.use(
   "/*",
   serveStatic({
-    root: "./ui/dist",
+    root: "./dist",
     path: "index.html",
   }),
 );
