@@ -1,0 +1,159 @@
+services:
+  postgres:
+    image: postgres:17
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: sunbeam
+      POSTGRES_PASSWORD: sunbeam
+      POSTGRES_DB: sunbeam
+    volumes:
+      - sso-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sunbeam"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  ory-db-init:
+    image: postgres:17-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: sunbeam
+    entrypoint:
+      - sh
+      - -c
+      - |
+        for db in kratos hydra; do
+          psql -h postgres -U sunbeam -d sunbeam -tc "SELECT 1 FROM pg_database WHERE datname='$$db'" | grep -q 1 || \
+            psql -h postgres -U sunbeam -d sunbeam -c "CREATE DATABASE $$db OWNER sunbeam";
+        done
+        echo "ory-db-init complete"
+    restart: no
+
+  kratos-migrate:
+    image: oryd/kratos:v1.3.0
+    depends_on:
+      ory-db-init:
+        condition: service_completed_successfully
+    environment:
+      DSN: postgres://sunbeam:sunbeam@postgres:5432/kratos?sslmode=disable
+    volumes:
+      - ./kratos.yaml:/etc/config/kratos/kratos.yaml:ro
+      - ./identity.schema.json:/etc/config/kratos/identity.schema.json:ro
+    command: migrate sql -e --yes
+    restart: no
+
+  kratos:
+    image: oryd/kratos:v1.3.0
+    depends_on:
+      kratos-migrate:
+        condition: service_completed_successfully
+    ports:
+      - 4433:4433
+      - 4434:4434
+    environment:
+      DSN: postgres://sunbeam:sunbeam@postgres:5432/kratos?sslmode=disable
+    volumes:
+      - ./kratos.yaml:/etc/config/kratos/kratos.yaml:ro
+      - ./identity.schema.json:/etc/config/kratos/identity.schema.json:ro
+    command: serve -c /etc/config/kratos/kratos.yaml --dev --watch-courier
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:4433/health/ready"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  hydra-migrate:
+    image: oryd/hydra:v2.3.0
+    depends_on:
+      ory-db-init:
+        condition: service_completed_successfully
+    environment:
+      DSN: postgres://sunbeam:sunbeam@postgres:5432/hydra?sslmode=disable
+    command: migrate sql --yes -e
+    restart: no
+
+  hydra:
+    image: oryd/hydra:v2.3.0
+    depends_on:
+      hydra-migrate:
+        condition: service_completed_successfully
+    ports:
+      - 4444:4444
+      - 4445:4445
+    environment:
+      DSN: postgres://sunbeam:sunbeam@postgres:5432/hydra?sslmode=disable
+      URLS_SELF_ISSUER: http://localhost:4444/
+      URLS_LOGIN: http://localhost:3102/oauth/login
+      URLS_CONSENT: http://localhost:3102/consent
+      URLS_LOGOUT: http://localhost:3102/oauth/logged-out
+      STRATEGIES_ACCESS_TOKEN: jwt
+      OAUTH2_EXPOSE_INTERNAL_ERRORS: 'true'
+      SECRETS_SYSTEM: dev-system-secret-32-bytes-min--
+      SECRETS_COOKIE: dev-cookie-secret-32-bytes-min---
+    command: serve all --dev
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:4444/health/ready"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  hydra-init:
+    image: alpine/curl:latest
+    depends_on:
+      hydra:
+        condition: service_healthy
+      kratos:
+        condition: service_healthy
+    entrypoint:
+      - sh
+      - -c
+    command:
+      - |
+        set -e
+        HYDRA_ADMIN="http://hydra:4445"
+        create_client() {
+          cid="$$1"
+          shift
+          curl -sf -X POST "$$HYDRA_ADMIN/admin/clients" \
+            -H "Content-Type: application/json" \
+            -d "$$@" || echo "$$cid: client may already exist"
+        }
+        create_client kanban-ui '{
+          "client_id": "kanban-ui",
+          "client_name": "Kanban",
+          "grant_types": ["authorization_code", "refresh_token"],
+          "response_types": ["code"],
+          "scope": "openid email profile offline_access kanban.read kanban.write",
+          "redirect_uris": ["http://localhost:47823/auth/callback"],
+          "token_endpoint_auth_method": "none",
+          "skip_consent": true
+        }'
+        create_client press '{
+          "client_id": "press",
+          "client_name": "Press",
+          "grant_types": ["authorization_code", "refresh_token"],
+          "response_types": ["code"],
+          "scope": "openid email profile offline_access",
+          "redirect_uris": ["http://localhost:5174/callback"],
+          "token_endpoint_auth_method": "none",
+          "skip_consent": true
+        }'
+        echo "hydra-init complete"
+    restart: no
+
+  stalwart:
+    image: stalwartlabs/mail-server:v0.11.0
+    ports:
+      - 1025:25
+      - 1143:143
+      - 8090:8080
+    volumes:
+      - sso-stalwart-data:/opt/stalwart-mail
+
+volumes:
+  sso-pg-data:
+  sso-stalwart-data:
