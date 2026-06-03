@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
 import { Button, TextInput, Toast } from "@sunbeam/beam-ui";
@@ -22,6 +22,9 @@ function getKratosError(flow: VerificationFlow): string | undefined {
 }
 
 export function VerificationFlowPage() {
+  const search = useSearch({ from: "/auth/verification" }) as { flow?: string };
+  const flowId = search.flow;
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<VerificationStep>("email");
@@ -40,8 +43,8 @@ export function VerificationFlowPage() {
     setToast((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  const query = useRestQuery<VerificationFlow>(api, "/self-service/verification/browser", {
-    queryKey: ["verification-flow"],
+  const query = useRestQuery<VerificationFlow>(api, flowId ? `/self-service/verification/flows?id=${flowId}` : "/self-service/verification/browser", {
+    queryKey: flowId ? ["verification-flow", flowId] : ["verification-flow"],
   });
 
   const currentFlow = flow ?? query.data ?? null;
@@ -192,12 +195,12 @@ export function VerificationFlowPage() {
             <p className={statusText}>
               Your email has been verified. You can now use your account.
             </p>
-            <Link to="/" className={link}>Go to dashboard</Link>
+            <Button variant="primary" onClick={() => navigate({ to: "/" })}>Go to dashboard</Button>
           </div>
         )}
 
         <div className={footer}>
-          <span style={{ color: "text.muted" }}>Already verified?</span>
+          <span className={css({ color: "text.muted" })}>Already verified?</span>
           <Link to="/login" className={link}>Sign in</Link>
         </div>
       </div>
@@ -221,7 +224,7 @@ const card = css({
   borderRadius: "md",
   border: "1px solid",
   borderColor: "border.subtle",
-  backgroundColor: "bg.surface",
+  backgroundColor: "bg.card",
 });
 
 const title = css({

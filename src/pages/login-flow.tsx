@@ -1,11 +1,12 @@
 import { useState, useCallback } from "react";
-import { useNavigate, Link } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
-import { Button, TextInput, Toast } from "@sunbeam/beam-ui";
+import { LoginForm, TwoFactorForm, Toast } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
 import { setUserSession } from "../providers/auth.tsx";
 import { submitFlow, needsMfa, getAvailableMfaMethods } from "../api/flows.ts";
+import { storeRememberMePreference } from "../utils/remember-me.ts";
 import type { LoginFlow } from "../api/types.ts";
 
 type LoginStep = "password" | "mfa" | "submitting";
@@ -22,11 +23,23 @@ function getKratosError(flow: LoginFlow): string | undefined {
   return undefined;
 }
 
+function getOAuthProviders(flow: LoginFlow | null): Array<{ name: string; icon: string; onClick: () => void }> {
+  if (!flow?.ui) return [];
+  return flow.ui.nodes
+    .filter((n) => n.group === "oidc" && n.attributes.name === "provider")
+    .map((n) => ({
+      name: n.meta?.label?.text ?? String(n.attributes.value),
+      icon: String(n.attributes.value),
+      onClick: () => {
+        submitFlow(flow as LoginFlow & { ui: NonNullable<LoginFlow["ui"]> }, { provider: n.attributes.value }, "oidc");
+      },
+    }));
+}
+
 export function LoginFlowPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [mfaCode, setMfaCode] = useState("");
+  const search = useSearch({ from: "/login" }) as { flow?: string };
+  const flowId = search.flow;
   const [step, setStep] = useState<LoginStep>("password");
   const [flow, setFlow] = useState<LoginFlow | null>(null);
   const [selectedMfaMethod, setSelectedMfaMethod] = useState<string>("");
@@ -44,24 +57,30 @@ export function LoginFlowPage() {
     setToast((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  const query = useRestQuery<LoginFlow>(api, "/self-service/login/browser", {
-    queryKey: ["login-flow"],
+  const query = useRestQuery<LoginFlow>(api, flowId ? `/self-service/login/flows?id=${flowId}` : "/self-service/login/browser", {
+    queryKey: flowId ? ["login-flow", flowId] : ["login-flow"],
   });
 
   const currentFlow = flow ?? query.data ?? null;
   const availableMethods = currentFlow ? getAvailableMfaMethods(currentFlow) : [];
   const activeMfaMethod = selectedMfaMethod || availableMethods[0] || "";
+  const error = currentFlow ? getKratosError(currentFlow) : undefined;
+  const oauthProviders = getOAuthProviders(currentFlow);
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLoginSubmit = async (_username: string, password: string, _remember: boolean) => {
     if (!currentFlow?.ui?.action) return;
 
     setStep("submitting");
     hideToast();
 
-    const result = await submitFlow(currentFlow as LoginFlow & { ui: NonNullable<LoginFlow["ui"]> }, { identifier: email, password }, "password");
+    const result = await submitFlow(
+      currentFlow as LoginFlow & { ui: NonNullable<LoginFlow["ui"]> },
+      { identifier: _username, password, remember: _remember },
+      "password",
+    );
 
     if (result.success && result.session) {
+      storeRememberMePreference(_remember);
       await setUserSession(
         result.session.identity as import("../api/types.ts").Identity,
         result.session.authenticator_assurance_level,
@@ -75,7 +94,6 @@ export function LoginFlowPage() {
       setFlow(result.flow as LoginFlow);
       const methods = getAvailableMfaMethods(result.flow as LoginFlow);
       setSelectedMfaMethod(methods[0] || "");
-      setMfaCode("");
       setStep("mfa");
       return;
     }
@@ -94,19 +112,18 @@ export function LoginFlowPage() {
     setStep("password");
   };
 
-  const handleMfaSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleMfaSubmit = async (code: string) => {
     if (!currentFlow?.ui?.action || !activeMfaMethod) return;
 
     setStep("submitting");
     hideToast();
 
-    const body: Record<string, unknown> = { code: mfaCode };
-    if (activeMfaMethod === "lookup_secret") {
-      // Kratos expects "code" for lookup_secret as well
-    }
-
-    const result = await submitFlow(currentFlow as LoginFlow & { ui: NonNullable<LoginFlow["ui"]> }, body, activeMfaMethod);
+    const body: Record<string, unknown> = { code };
+    const result = await submitFlow(
+      currentFlow as LoginFlow & { ui: NonNullable<LoginFlow["ui"]> },
+      body,
+      activeMfaMethod,
+    );
 
     if (result.success && result.session) {
       await setUserSession(
@@ -136,9 +153,13 @@ export function LoginFlowPage() {
     }
   };
 
+  const handleScratchCode = () => {
+    setSelectedMfaMethod("lookup_secret");
+  };
+
   const handleBackToPassword = () => {
     setStep("password");
-    setMfaCode("");
+    setSelectedMfaMethod("");
     hideToast();
   };
 
@@ -148,79 +169,45 @@ export function LoginFlowPage() {
     <div className={wrapper}>
       <Toast message={toast.message} variant={toast.variant} visible={toast.visible} onDismiss={hideToast} />
 
-      <div className={card}>
-        <h1 className={title}>Sunbeam SSO</h1>
-        <p className={subtitle}>Sign in to your account</p>
+      {query.isLoading && <p className={statusText}>Loading…</p>}
+      {query.error && !currentFlow && <p className={errorText}>{query.error.message}</p>}
 
-        {query.isLoading && <p className={statusText}>Loading…</p>}
-        {query.error && !currentFlow && (
-          <p className={errorText}>{query.error.message}</p>
-        )}
+      {currentFlow && step === "password" && (
+        <LoginForm
+          onSubmit={handleLoginSubmit}
+          oauthProviders={oauthProviders.length > 0 ? oauthProviders : undefined}
+          error={error}
+          loading={isSubmitting}
+        />
+      )}
 
-        {currentFlow && step === "password" && (
-          <form onSubmit={handlePasswordSubmit} className={formStack}>
-            <TextInput
-              type="email"
-              label="E-Mail"
-              placeholder="you@example.com"
-              value={email}
-              onChange={setEmail}
-              disabled={isSubmitting}
-            />
-            <TextInput
-              type="password"
-              label="Password"
-              placeholder="••••••••"
-              value={password}
-              onChange={setPassword}
-              disabled={isSubmitting}
-            />
-            <Button variant="primary" type="submit" disabled={isSubmitting || !email || !password}>
-              {isSubmitting ? "Signing in…" : "Sign in with password"}
-            </Button>
-          </form>
-        )}
-
-        {currentFlow && step === "mfa" && (
-          <form onSubmit={handleMfaSubmit} className={formStack}>
-            {availableMethods.length > 1 && (
-              <div className={methodPicker}>
-                {availableMethods.map((method) => (
-                  <button
-                    key={method}
-                    type="button"
-                    className={method === activeMfaMethod ? methodButtonSelected : methodButton}
-                    onClick={() => {
-                      setSelectedMfaMethod(method);
-                      setMfaCode("");
-                    }}
-                  >
-                    {method === "totp" ? "Authenticator app" : "Backup code"}
-                  </button>
-                ))}
-              </div>
-            )}
-            <TextInput
-              type="text"
-              label={activeMfaMethod === "totp" ? "6-digit code" : "Backup code"}
-              placeholder={activeMfaMethod === "totp" ? "000000" : "backup-code"}
-              value={mfaCode}
-              onChange={setMfaCode}
-              disabled={isSubmitting}
-            />
-            <Button variant="primary" type="submit" disabled={isSubmitting || !mfaCode}>
-              {isSubmitting ? "Verifying…" : "Verify"}
-            </Button>
-            <Button variant="ghost" type="button" disabled={isSubmitting} onClick={handleBackToPassword}>
-              ← Back to password
-            </Button>
-          </form>
-        )}
-
-        <div className={footer}>
-          <Link to="/recovery" className={link}>Forgot password?</Link>
+      {currentFlow && step === "mfa" && (
+        <div className={mfaWrapper}>
+          {availableMethods.length > 1 && (
+            <div className={methodPicker}>
+              {availableMethods.map((method) => (
+                <button
+                  key={method}
+                  type="button"
+                  className={method === activeMfaMethod ? methodButtonSelected : methodButton}
+                  onClick={() => setSelectedMfaMethod(method)}
+                >
+                  {method === "totp" ? "Authenticator app" : "Backup code"}
+                </button>
+              ))}
+            </div>
+          )}
+          <TwoFactorForm
+            onSubmit={handleMfaSubmit}
+            onScratchCode={activeMfaMethod === "totp" ? handleScratchCode : handleBackToPassword}
+            error={error}
+            loading={isSubmitting}
+          />
+          <button type="button" className={backLink} onClick={handleBackToPassword}>
+            ← Back to sign in
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -232,31 +219,8 @@ const wrapper = css({
   minHeight: "100vh",
   padding: "24px",
   backgroundColor: "bg.page",
-});
-
-const card = css({
-  width: "100%",
-  maxWidth: "400px",
-  padding: "32px",
-  borderRadius: "md",
-  border: "1px solid",
-  borderColor: "border.subtle",
-  backgroundColor: "bg.surface",
-});
-
-const title = css({
-  fontSize: "xl",
-  fontWeight: "bold",
-  color: "text.primary",
-  textAlign: "center",
-  marginBottom: "4px",
-});
-
-const subtitle = css({
-  fontSize: "sm",
-  color: "text.secondary",
-  textAlign: "center",
-  marginBottom: "24px",
+  flexDirection: "column",
+  gap: "16px",
 });
 
 const statusText = css({
@@ -271,25 +235,12 @@ const errorText = css({
   textAlign: "center",
 });
 
-const formStack = css({
+const mfaWrapper = css({
   display: "flex",
   flexDirection: "column",
   gap: "16px",
-});
-
-const footer = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "8px",
-  marginTop: "20px",
-  fontSize: "sm",
-});
-
-const link = css({
-  color: "accent",
-  textDecoration: "none",
-  _hover: { textDecoration: "underline" },
+  width: "100%",
+  maxWidth: "400px",
 });
 
 const methodPicker = css({
@@ -303,7 +254,7 @@ const methodButton = css({
   borderRadius: "md",
   border: "1px solid",
   borderColor: "border.subtle",
-  backgroundColor: "bg.surface",
+  backgroundColor: "bg.card",
   color: "text.primary",
   fontSize: "sm",
   cursor: "pointer",
@@ -316,8 +267,24 @@ const methodButtonSelected = css({
   borderRadius: "md",
   border: "1px solid",
   borderColor: "accent",
-  backgroundColor: "bg.accent.subtle",
+  backgroundColor: "bg.card",
   color: "text.primary",
   fontSize: "sm",
   cursor: "pointer",
+});
+
+const backLink = css({
+  fontSize: "13px",
+  fontFamily: "body",
+  color: "sunbeam.orange",
+  cursor: "pointer",
+  textDecoration: "underline",
+  textUnderlineOffset: "3px",
+  background: "none",
+  border: "none",
+  padding: 0,
+  textAlign: "center",
+  _hover: {
+    textDecorationColor: "sunbeam.orange",
+  },
 });

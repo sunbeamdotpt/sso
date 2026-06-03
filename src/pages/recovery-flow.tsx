@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
-import { Link } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
-import { Button, TextInput, Toast } from "@sunbeam/beam-ui";
+import { TextInput, Button, Callout, Toast } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
 import { submitFlow } from "../api/flows.ts";
 import type { RecoveryFlow } from "../api/types.ts";
@@ -22,6 +22,9 @@ function getKratosError(flow: RecoveryFlow): string | undefined {
 }
 
 export function RecoveryFlowPage() {
+  const navigate = useNavigate();
+  const search = useSearch({ from: "/recovery" }) as { flow?: string };
+  const flowId = search.flow;
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<RecoveryStep>("email");
@@ -40,11 +43,12 @@ export function RecoveryFlowPage() {
     setToast((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  const query = useRestQuery<RecoveryFlow>(api, "/self-service/recovery/browser", {
-    queryKey: ["recovery-flow"],
+  const query = useRestQuery<RecoveryFlow>(api, flowId ? `/self-service/recovery/flows?id=${flowId}` : "/self-service/recovery/browser", {
+    queryKey: flowId ? ["recovery-flow", flowId] : ["recovery-flow"],
   });
 
   const currentFlow = flow ?? query.data ?? null;
+  const error = currentFlow ? getKratosError(currentFlow) : undefined;
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +72,6 @@ export function RecoveryFlowPage() {
         setStep("email");
         return;
       }
-      // Transition to code step if the flow has a code field in its UI nodes
       const hasCodeNode = updatedFlow.ui?.nodes?.some(
         (n) => n.attributes.name === "code" || n.group === "code",
       );
@@ -108,7 +111,7 @@ export function RecoveryFlowPage() {
       "code",
     );
 
-    if (result.success) {
+    if (result.success || result.redirect_browser_to) {
       showToast("Password reset successful!", "success");
       setStep("success");
       return;
@@ -144,64 +147,73 @@ export function RecoveryFlowPage() {
     <div className={wrapper}>
       <Toast message={toast.message} variant={toast.variant} visible={toast.visible} onDismiss={hideToast} />
 
-      <div className={card}>
-        <h1 className={title}>Sunbeam SSO</h1>
-        <p className={subtitle}>Recover your account</p>
+      {query.isLoading && <p className={statusText}>Loading…</p>}
+      {query.error && !currentFlow && <p className={errorText}>{query.error.message}</p>}
 
-        {query.isLoading && <p className={statusText}>Loading…</p>}
-        {query.error && !currentFlow && (
-          <p className={errorText}>{query.error.message}</p>
-        )}
-
-        {currentFlow && step === "email" && (
+      {currentFlow && step === "email" && (
+        <div className={emailCard}>
+          <h2 className={title}>Forgot Password</h2>
+          {error && <Callout variant="warning">{error}</Callout>}
           <form onSubmit={handleEmailSubmit} className={formStack}>
+            <p className={subtitle}>
+              Enter your email address and we'll send you a link to reset your password.
+            </p>
             <TextInput
+              label="Email"
               type="email"
-              label="E-Mail"
-              placeholder="you@example.com"
               value={email}
               onChange={setEmail}
+              placeholder="you@example.com"
               disabled={isSubmitting}
             />
-            <Button variant="primary" type="submit" disabled={isSubmitting || !email}>
-              {isSubmitting ? "Sending…" : "Send recovery code"}
+            <Button variant="primary" type="submit" className={fullWidth}>
+              {isSubmitting && <span>Loading…</span>}
+              Send Reset Link
             </Button>
           </form>
-        )}
+          <div className={links}>
+            <a className={backLink} href="/login" onClick={(e) => { e.preventDefault(); navigate({ to: "/login" }); }}>
+              Back to sign in
+            </a>
+          </div>
+        </div>
+      )}
 
-        {currentFlow && step === "code" && (
+      {currentFlow && step === "code" && (
+        <div className={codeCard}>
+          <h2 className={title}>Enter Recovery Code</h2>
+          <p className={subtitle}>Enter the code sent to your email.</p>
+          {error && <p className={errorText}>{error}</p>}
           <form onSubmit={handleCodeSubmit} className={formStack}>
-            <TextInput
+            <input
               type="text"
-              label="Recovery code"
+              className={codeInput}
               placeholder="000000"
               value={code}
-              onChange={setCode}
+              onChange={(e) => setCode(e.target.value)}
               disabled={isSubmitting}
+              autoFocus
             />
-            <Button variant="primary" type="submit" disabled={isSubmitting || !code}>
-              {isSubmitting ? "Verifying…" : "Verify code"}
-            </Button>
-            <Button variant="ghost" type="button" disabled={isSubmitting} onClick={handleBackToEmail}>
+            <button type="submit" className={submitButton} disabled={isSubmitting || !code}>
+              {isSubmitting ? "Verifying…" : "Verify"}
+            </button>
+            <button type="button" className={backLink} onClick={handleBackToEmail}>
               ← Use a different email
-            </Button>
+            </button>
           </form>
-        )}
-
-        {step === "success" && (
-          <div className={formStack}>
-            <p className={statusText}>
-              Your password has been reset. You can now sign in with your new password.
-            </p>
-            <Link to="/login" className={link}>Sign in</Link>
-          </div>
-        )}
-
-        <div className={footer}>
-          <span style={{ color: "text.muted" }}>Remember your password?</span>
-          <Link to="/login" className={link}>Sign in</Link>
         </div>
-      </div>
+      )}
+
+      {step === "success" && (
+        <div className={successCard}>
+          <h2 className={title}>Success</h2>
+          <p className={subtitle}>Your password has been reset. You can now sign in with your new password.</p>
+          
+          <button className={submitButton} onClick={() => navigate({ to: "/login" })}>
+            Sign in
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -213,31 +225,8 @@ const wrapper = css({
   minHeight: "100vh",
   padding: "24px",
   backgroundColor: "bg.page",
-});
-
-const card = css({
-  width: "100%",
-  maxWidth: "400px",
-  padding: "32px",
-  borderRadius: "md",
-  border: "1px solid",
-  borderColor: "border.subtle",
-  backgroundColor: "bg.surface",
-});
-
-const title = css({
-  fontSize: "xl",
-  fontWeight: "bold",
-  color: "text.primary",
-  textAlign: "center",
-  marginBottom: "4px",
-});
-
-const subtitle = css({
-  fontSize: "sm",
-  color: "text.secondary",
-  textAlign: "center",
-  marginBottom: "24px",
+  flexDirection: "column",
+  gap: "16px",
 });
 
 const statusText = css({
@@ -252,23 +241,131 @@ const errorText = css({
   textAlign: "center",
 });
 
+const codeCard = css({
+  maxWidth: "400px",
+  width: "100%",
+  margin: "0 auto",
+  backgroundColor: "bg.page",
+  border: "2px solid",
+  borderColor: "border.default",
+  padding: "32px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "16px",
+  shadow: "golden",
+});
+
+const successCard = css({
+  maxWidth: "400px",
+  width: "100%",
+  margin: "0 auto",
+  backgroundColor: "bg.page",
+  border: "2px solid",
+  borderColor: "border.default",
+  padding: "32px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "16px",
+  shadow: "golden",
+});
+
+const title = css({
+  fontSize: "24px",
+  fontWeight: "heading",
+  fontFamily: "heading",
+  color: "text.primary",
+  textAlign: "center",
+  margin: 0,
+});
+
+const subtitle = css({
+  fontSize: "14px",
+  fontFamily: "body",
+  color: "text.secondary",
+  lineHeight: 1.5,
+  textAlign: "center",
+  margin: 0,
+});
+
 const formStack = css({
   display: "flex",
   flexDirection: "column",
   gap: "16px",
 });
 
-const footer = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "8px",
-  marginTop: "20px",
-  fontSize: "sm",
+const codeInput = css({
+  width: "100%",
+  padding: "12px 16px",
+  borderRadius: "md",
+  border: "1px solid",
+  borderColor: "border.default",
+  backgroundColor: "bg.card",
+  color: "text.primary",
+  fontSize: "16px",
+  fontFamily: "body",
+  outline: "none",
+  _focus: {
+    borderColor: "accent",
+    ring: "2px",
+    ringColor: "accent",
+  },
 });
 
-const link = css({
-  color: "accent",
-  textDecoration: "none",
-  _hover: { textDecoration: "underline" },
+const submitButton = css({
+  width: "100%",
+  padding: "12px 16px",
+  borderRadius: "md",
+  border: "none",
+  backgroundColor: "accent",
+  color: "white",
+  fontSize: "16px",
+  fontWeight: "button",
+  fontFamily: "body",
+  cursor: "pointer",
+  _hover: { backgroundColor: "sunbeam.flame" },
+  textAlign: "center",
+  _disabled: { opacity: 0.5, cursor: "not-allowed" },
+});
+
+const backLink = css({
+  fontSize: "13px",
+  fontFamily: "body",
+  color: "sunbeam.orange",
+  cursor: "pointer",
+  textDecoration: "underline",
+  textUnderlineOffset: "3px",
+  background: "none",
+  border: "none",
+  padding: 0,
+  textAlign: "center",
+  _hover: {
+    textDecorationColor: "sunbeam.orange",
+  },
+});
+
+const emailCard = css({
+  maxWidth: "400px",
+  width: "100%",
+  margin: "0 auto",
+  backgroundColor: "bg.page",
+  border: "2px solid",
+  borderColor: "border.default",
+  padding: "32px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "16px",
+  shadow: "golden",
+});
+
+const fullWidth = css({
+  width: "100%",
+  justifyContent: "center",
+});
+
+const links = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "8px",
+  marginTop: "8px",
 });

@@ -113,7 +113,7 @@ const card = css({
   borderRadius: "md",
   border: "1px solid",
   borderColor: "border.subtle",
-  backgroundColor: "bg.surface",
+  backgroundColor: "bg.card",
   display: "flex",
   flexDirection: "column",
   gap: "20px",

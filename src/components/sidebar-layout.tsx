@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
+import { ScrollArea } from "@sunbeam/beam-ui";
 import { css } from "styled-system/css";
 
 const sidebarNav = css({
@@ -69,7 +70,6 @@ const sidebarPanel = css({
 
 const contentPanel = css({
   height: "100%",
-  overflowY: "auto",
   padding: "24px",
   flex: 1,
 });
@@ -218,7 +218,11 @@ export function SidebarLayout({
   if (!open) {
     return (
       <div className={css({ display: "flex", height: "100%", overflow: "hidden" })}>
-        <div className={contentPanel}>{children}</div>
+        <div className={contentPanel}>
+          <ScrollArea maxHeight="100%" direction="vertical">
+            {children}
+          </ScrollArea>
+        </div>
       </div>
     );
   }
@@ -236,7 +240,11 @@ export function SidebarLayout({
       >
         <div className={resizeBar} />
       </button>
-      <div className={contentPanel}>{children}</div>
+      <div className={contentPanel}>
+        <ScrollArea maxHeight="100%" direction="vertical">
+          {children}
+        </ScrollArea>
+      </div>
     </div>
   );
 }
