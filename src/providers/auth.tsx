@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { authActions } from "@sunbeam/g2v/state";
+import {
+  isSessionValidForThisBrowsingSession,
+  clearRememberMeState,
+} from "../utils/remember-me.ts";
 import type { Session, Identity } from "../api/types.ts";
 
 function getDisplayName(identity: Identity): string {
@@ -12,6 +16,12 @@ function getDisplayName(identity: Identity): string {
  * Validate the current Kratos browser session via cookie and hydrate the auth store.
  */
 export async function validateSession(): Promise<boolean> {
+  // If user unchecked remember me and browser was closed, force logout
+  if (!(await isSessionValidForThisBrowsingSession())) {
+    authActions.logout();
+    return false;
+  }
+
   try {
     const res = await fetch("/api/sessions/whoami", {
       credentials: "same-origin",
@@ -43,6 +53,7 @@ export async function validateSession(): Promise<boolean> {
           name: getDisplayName(session.identity),
           aal: session.authenticator_assurance_level ?? "aal1",
           isAdmin,
+          roles: isAdmin ? ["admin"] : [],
         },
       });
       return true;
@@ -79,6 +90,7 @@ export async function setUserSession(identity: Identity, aal?: string) {
       name: getDisplayName(identity),
       aal: aal ?? "aal1",
       isAdmin,
+      roles: isAdmin ? ["admin"] : [],
     },
   });
 }
@@ -104,6 +116,7 @@ export async function clearSession() {
   } catch {
     // Ignore logout errors
   }
+  clearRememberMeState();
   authActions.logout();
 }
 
@@ -122,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           alignItems: "center",
           justifyContent: "center",
           height: "100vh",
-          color: "var(--colors-text-secondary)",
+          color: "var(--colors-text\\.secondary)",
         }}
       >
         Loading…
