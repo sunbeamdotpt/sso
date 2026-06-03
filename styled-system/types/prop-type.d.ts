@@ -120,7 +120,7 @@ export interface UtilityValues {
 	srOnly: boolean;
 	debug: boolean;
 	containerName: CssProperties["containerName"];
-	colorPalette: "sunbeam.orange" | "sunbeam.flame" | "beam.orange" | "sunshine.900" | "sunshine.700" | "sunshine.500" | "sunshine.300" | "beam.gold" | "bright.yellow" | "warm.ivory" | "cream" | "sunbeam.black" | "card.dark" | "code.activePill" | "code.text" | "code.success" | "syn.keyword" | "syn.fn" | "syn.string" | "syn.prop" | "syn.number" | "syn.builtin" | "border.warm" | "border.warmSubtle" | "border.warmDark" | "bg.page" | "bg.card" | "bg.nav" | "text.primary" | "text.secondary" | "text.muted" | "border.default" | "border.subtle" | "accent" | "sectionLabel";
+	colorPalette: "sunbeam.orange" | "sunbeam.flame" | "beam.orange" | "sunshine.900" | "sunshine.700" | "sunshine.500" | "sunshine.300" | "beam.gold" | "bright.yellow" | "warm.ivory" | "cream" | "sunbeam.black" | "card.dark" | "code.activePill" | "code.text" | "code.success" | "syn.keyword" | "syn.fn" | "syn.string" | "syn.prop" | "syn.number" | "syn.builtin" | "border.warm" | "border.warmSubtle" | "border.warmDark" | "bg.page" | "bg.card" | "bg.nav" | "text.primary" | "text.secondary" | "text.muted" | "border.default" | "border.subtle" | "accent" | "sectionLabel" | "error" | "success" | "warning";
 	textStyle: "display" | "section" | "sub-heading-lg" | "sub-heading" | "title" | "body" | "caption" | "emphasis" | "strong-title" | "label";
 }
 

@@ -1,15 +1,15 @@
 version: v1.3.0
 
-dsn: memory
+dsn: postgres://sunbeam:sunbeam@postgres:5432/kratos?sslmode=disable
 
 serve:
   public:
-    base_url: http://localhost:4433/
+    base_url: http://localhost:5175/
     cors:
       enabled: true
       allowed_origins:
-        - http://localhost:3000
-        - http://localhost:58247
+        - http://localhost:3102
+        - http://localhost:5175
       allowed_methods:
         - POST
         - GET
@@ -27,11 +27,12 @@ serve:
     base_url: http://kratos:4434/
 
 selfservice:
-  default_browser_return_url: http://localhost:3000/
+  default_browser_return_url: http://localhost:5175/
   allowed_return_urls:
-    - http://localhost:3000
-    - http://localhost:3000/
-    - http://localhost:58247
+    - http://localhost:3102
+    - http://localhost:3102/
+    - http://localhost:5175
+    - http://localhost:5175/
 
   methods:
     password:
@@ -54,32 +55,32 @@ selfservice:
 
   flows:
     error:
-      ui_url: http://localhost:3000/auth/error
+      ui_url: http://localhost:5175/auth/error
 
     settings:
-      ui_url: http://localhost:3000/account/security
+      ui_url: http://localhost:5175/account/security
       privileged_session_max_age: 15m
       required_aal: highest_available
 
     recovery:
       enabled: true
-      ui_url: http://localhost:3000/auth/recovery
+      ui_url: http://localhost:5175/auth/recovery
       use: code
       notify_unknown_recipients: false
 
     verification:
       enabled: true
-      ui_url: http://localhost:3000/auth/verify
+      ui_url: http://localhost:5175/auth/verification
       after:
-        default_browser_return_url: http://localhost:3000/account/profile
+        default_browser_return_url: http://localhost:5175/account/profile
       notify_unknown_recipients: false
 
     logout:
       after:
-        default_browser_return_url: http://localhost:3000/auth/login
+        default_browser_return_url: http://localhost:5175/auth/login
 
     login:
-      ui_url: http://localhost:3000/auth/login
+      ui_url: http://localhost:5175/auth/login
       lifespan: 10m
       after:
         password:
@@ -87,13 +88,8 @@ selfservice:
             - hook: require_verified_address
 
     registration:
-      lifespan: 10m
-      ui_url: http://localhost:3000/auth/register
-      after:
-        password:
-          hooks:
-            - hook: session
-            - hook: show_verification_ui
+      enabled: false
+      ui_url: http://localhost:5175/auth/register
 
 log:
   level: info

@@ -134,14 +134,18 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, "/admin"),
       },
       "/api/schemas": {
-        target: "http://localhost:4434",
+        target: "http://localhost:4433",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "/admin"),
+        rewrite: (path) => path.replace(/^\/api/, ""),
       },
       "/api/version": {
         target: "http://localhost:4434",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, "/admin"),
+      },
+      "/self-service": {
+        target: "http://localhost:4433",
+        changeOrigin: true,
       },
       "/api": {
         target: "http://localhost:4433",

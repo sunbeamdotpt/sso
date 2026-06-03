@@ -19,6 +19,7 @@
     "npm:@vitejs/plugin-react@^4.3.0": "4.7.0_vite@6.4.2",
     "npm:@vitest/coverage-v8@3": "3.2.6_vitest@3.2.6__happy-dom@17.6.3_happy-dom@17.6.3",
     "npm:happy-dom@17": "17.6.3",
+    "npm:hono@^4.12.0": "4.12.21",
     "npm:katex@~0.16.44": "0.16.47",
     "npm:playwright@*": "1.60.0",
     "npm:playwright@1.60.0": "1.60.0",
@@ -1768,7 +1769,7 @@
         "@babel/code-frame",
         "@babel/runtime",
         "@types/aria-query",
-        "aria-query@5.3.0",
+        "aria-query",
         "dom-accessibility-api@0.5.16",
         "lz-string",
         "picocolors",
@@ -1779,7 +1780,7 @@
       "integrity": "sha512-zIcONa+hVtVSSep9UT3jZ5rizo2BsxgyDYU7WFD5eICBE7no3881HGeb/QkGfsJs6JTkY1aQhT7rIPC7e+0nnA==",
       "dependencies": [
         "@adobe/css-tools",
-        "aria-query@5.3.2",
+        "aria-query",
         "css.escape",
         "dom-accessibility-api@0.6.3",
         "picocolors",
@@ -2843,9 +2844,6 @@
       "dependencies": [
         "dequal"
       ]
-    },
-    "aria-query@5.3.2": {
-      "integrity": "sha512-COROpnaoap1E2F000S62r6A60uHZnmlvomhfyT2DlTcrY1OrBKn2UhH7qn5wTC9zMvD0AY7csdPSNwKP+7WiQw=="
     },
     "assertion-error@2.0.1": {
       "integrity": "sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA=="
@@ -4790,7 +4788,7 @@
       "dependencies": [
         "ansi-regex@5.0.1",
         "ansi-styles@5.2.0",
-        "react-is@17.0.2"
+        "react-is"
       ]
     },
     "property-information@7.1.0": {
@@ -4867,9 +4865,6 @@
     "react-is@17.0.2": {
       "integrity": "sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w=="
     },
-    "react-is@19.2.6": {
-      "integrity": "sha512-XjBR15BhXuylgWGuslhDKqlSayuqvqBX91BP8pauG8kd1zY8kotkNWbXksTCNRarse4kuGbe2kIY05ARtwNIvw=="
-    },
     "react-redux@9.3.0_@types+react@19.2.15_react@19.2.6_redux@5.0.1": {
       "integrity": "sha512-KQopgqFo/p/fgmAs5qz6p5RWaNAzq40WAu7fJIXnQpYxFPbJYtsJPWvGeF2rOBaY/kEuV77AVsX8TsQzKm+A/g==",
       "dependencies": [
@@ -4904,7 +4899,6 @@
         "immer@10.2.0",
         "react",
         "react-dom",
-        "react-is@19.2.6",
         "react-redux",
         "reselect",
         "tiny-invariant",
@@ -5680,6 +5674,7 @@
       "npm:@vitejs/plugin-react@^4.3.0",
       "npm:@vitest/coverage-v8@3",
       "npm:happy-dom@17",
+      "npm:hono@^4.12.0",
       "npm:playwright@^1.60.0",
       "npm:react-dom@19",
       "npm:react@19",

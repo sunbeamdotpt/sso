@@ -5,23 +5,17 @@
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--colors-sunshine-300) transparent;
+  scrollbar-color: var(--colors-accent) transparent;
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--colors-sunshine-300); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: var(--colors-sunshine-700); }
-
-[data-theme="dark"] * {
-  scrollbar-color: var(--colors-sunshine-700) transparent;
-}
-[data-theme="dark"] ::-webkit-scrollbar-thumb { background: var(--colors-sunshine-700); }
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: var(--colors-sunbeam-orange); }
+::-webkit-scrollbar-thumb { background: var(--colors-accent); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--colors-sunbeam\.flame); }
 
 ::selection {
-  background: var(--colors-sunbeam-orange);
-  color: white;
+  background: var(--colors-accent);
+  color: var(--colors-bg\.page);
 }
 
 html {
@@ -42,6 +36,23 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--colors-sunbeam-orange);
+  outline: 2px solid var(--colors-accent);
   outline-offset: 2px;
+}
+
+/* Explicit light-mode token overrides — ensures correct colors even if
+ * Panda semantic-token generation is cached or stale. */
+[data-theme="light"] {
+  --colors-bg\.page: #fffaeb;
+  --colors-bg\.card: #fff0c2;
+  --colors-bg\.nav: rgba(255,250,235,0.92);
+  --colors-text\.primary: #1f1f1f;
+  --colors-text\.secondary: hsl(0,0%,24%);
+  --colors-text\.muted: #7f6315;
+  --colors-border\.default: rgba(127, 99, 21, 0.15);
+  --colors-border\.subtle: rgba(127, 99, 21, 0.08);
+  --colors-accent: #fa520f;
+  --colors-success: #16a34a;
+  --colors-error: #dc2626;
+  --colors-warning: #d97706;
 }

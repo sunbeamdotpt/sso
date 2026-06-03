@@ -275,6 +275,18 @@ const tokens = {
     "value": "var(--colors-section-label)",
     "variable": "var(--colors-section-label)"
   },
+  "colors.error": {
+    "value": "var(--colors-error)",
+    "variable": "var(--colors-error)"
+  },
+  "colors.success": {
+    "value": "var(--colors-success)",
+    "variable": "var(--colors-success)"
+  },
+  "colors.warning": {
+    "value": "var(--colors-warning)",
+    "variable": "var(--colors-warning)"
+  },
   "colors.colorPalette": {
     "value": "var(--colors-color-palette)",
     "variable": "var(--colors-color-palette)"
