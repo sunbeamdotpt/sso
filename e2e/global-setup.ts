@@ -1,5 +1,5 @@
 import type { FullConfig } from "@playwright/test";
-import { cleanupAllIdentities, createIdentity } from "./utils/kratos.ts";
+import { cleanupAllIdentities, createIdentity, createAuthenticatedIdentity, listIdentities, deleteIdentity } from "./utils/kratos.ts";
 
 /**
  * Global setup: seed Kratos with deterministic test identities.
@@ -9,7 +9,7 @@ import { cleanupAllIdentities, createIdentity } from "./utils/kratos.ts";
  * across runs.
  */
 export default async function globalSetup(_config: FullConfig) {
-  // Start from a clean slate
+  // Start from a clean slate (preserves dev identity)
   await cleanupAllIdentities();
 
   // Seed identities that the test suite expects
@@ -17,5 +17,17 @@ export default async function globalSetup(_config: FullConfig) {
   await createIdentity({ email: "test-user-2@sunbeam.pt" });
   await createIdentity({ email: "admin@sunbeam.pt" });
 
-  console.log("[global-setup] Kratos seeded with 3 test identities");
+  // Seed dev identity with known password for manual testing.
+  // If it already exists (preserved by cleanup), delete and recreate
+  // so the password is always correct.
+  const identities = await listIdentities();
+  const devIdentity = identities.find(
+    (i) => (i.traits as Record<string, string>)?.email === "dev@sunbeam.pt",
+  );
+  if (devIdentity) {
+    await deleteIdentity(devIdentity.id);
+  }
+  await createAuthenticatedIdentity("dev@sunbeam.pt", "sunbeam123");
+
+  console.log("[global-setup] Kratos seeded with 4 test identities");
 }

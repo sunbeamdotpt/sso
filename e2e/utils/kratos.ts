@@ -153,9 +153,12 @@ export async function createAuthenticatedIdentity(
 
 export async function cleanupAllIdentities(): Promise<void> {
   const identities = await listIdentities();
-  for (const id of identities.map((i) => i.id)) {
+  for (const identity of identities) {
+    const email = (identity.traits as Record<string, string>)?.email ?? "";
+    // Preserve the dev identity so manual testing isn't disrupted
+    if (email === "dev@sunbeam.pt") continue;
     try {
-      await deleteIdentity(id);
+      await deleteIdentity(identity.id);
       await delay(100);
     } catch {
       // ignore

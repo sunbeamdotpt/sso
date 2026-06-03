@@ -26,4 +26,13 @@ test.describe("OAuth Pages", () => {
     await expect(page.getByRole("button", { name: /Sign out/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /No, stay signed in/i })).toBeVisible();
   });
+
+  test("OAuth login page renders", async ({ page }) => {
+    await page.goto("/oauth/login");
+
+    await expect(page.getByRole("heading", { name: /Sign in to continue/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("textbox", { name: "Email" })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Password" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Sign in/i })).toBeVisible();
+  });
 });

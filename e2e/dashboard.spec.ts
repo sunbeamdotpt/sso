@@ -19,9 +19,9 @@ test.describe("Dashboard", () => {
     await sqliteDelay();
 
     await page.goto("/login");
-    await page.getByLabel("E-Mail").fill(email);
-    await page.getByLabel("Password").fill(password);
-    await page.getByRole("button", { name: /Sign in with password/i }).click();
+    await page.getByLabel(/Username or email/i).fill(email);
+    await page.getByLabel(/Password/i).fill(password);
+    await page.getByRole("button", { name: /SIGN IN/i }).click();
     await expect(page).toHaveURL("/");
   });
 
