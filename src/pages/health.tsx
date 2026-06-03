@@ -1,6 +1,7 @@
 import { useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
 import { api } from "../api/client.ts";
+import { ScrollArea } from "@sunbeam/beam-ui";
 import type { HealthStatus, HealthNotReadyStatus } from "../api/types.ts";
 
 export function HealthPage() {
@@ -15,7 +16,8 @@ export function HealthPage() {
   });
 
   return (
-    <div className={container}>
+    <ScrollArea maxHeight="calc(100vh - 88px)" direction="vertical">
+      <div className={container}>
       <h1 className={title}>Health</h1>
 
       <div className={grid}>
@@ -64,7 +66,8 @@ export function HealthPage() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }
 
@@ -92,7 +95,7 @@ const card = css({
   borderRadius: "12px",
   border: "1px solid",
   borderColor: "border.default",
-  background: "bg.surface",
+  background: "bg.card",
 });
 
 const cardTitle = css({
@@ -127,13 +130,13 @@ const badge = css({
 
 const badgeSuccess = css({
   ...badge,
-  background: "success",
+  backgroundColor: "success",
   color: "white",
 });
 
 const badgeError = css({
   ...badge,
-  background: "error",
+  backgroundColor: "error",
   color: "white",
 });
 
@@ -142,7 +145,7 @@ const codeBlock = css({
   marginBottom: 0,
   fontSize: "xs",
   fontFamily: "mono",
-  background: "bg.subtle",
+  background: "bg.card",
   padding: "12px",
   borderRadius: "6px",
   overflow: "auto",

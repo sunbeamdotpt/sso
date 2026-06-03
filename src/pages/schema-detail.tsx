@@ -1,6 +1,7 @@
 import { useParams } from "@tanstack/react-router";
 import { useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
+import { ScrollArea } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
 
 export function SchemaDetailPage() {
@@ -11,7 +12,8 @@ export function SchemaDetailPage() {
   });
 
   return (
-    <div className={container}>
+    <ScrollArea maxHeight="calc(100vh - 88px)" direction="vertical">
+      <div className={container}>
       <h1 className={title}>Schema: {id}</h1>
 
       {query.isLoading && <p className={status}>Loading…</p>}
@@ -22,7 +24,8 @@ export function SchemaDetailPage() {
           {JSON.stringify(query.data, null, 2)}
         </pre>
       )}
-    </div>
+      </div>
+    </ScrollArea>
   );
 }
 
@@ -51,7 +54,7 @@ const codeBlock = css({
   margin: 0,
   fontSize: "sm",
   fontFamily: "mono",
-  background: "bg.subtle",
+  background: "bg.card",
   padding: "20px",
   borderRadius: "12px",
   overflow: "auto",

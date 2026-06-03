@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
 import { api } from "../api/client.ts";
+import { ScrollArea } from "@sunbeam/beam-ui";
 import type { Version } from "../api/types.ts";
 
 export function DashboardPage() {
@@ -10,7 +11,8 @@ export function DashboardPage() {
   });
 
   return (
-    <div className={container}>
+    <ScrollArea maxHeight="calc(100vh - 88px)" direction="vertical">
+      <div className={container}>
       <h1 className={title}>Sunbeam SSO</h1>
       <p className={subtitle}>Identity & self-service administration</p>
 
@@ -39,7 +41,7 @@ export function DashboardPage() {
           <span className={cardTitle}>Settings</span>
           <span className={cardDesc}>Profile & security</span>
         </Link>
-        <Link to="/verification" className={card}>
+        <Link to="/auth/verification" className={card}>
           <span className={cardIcon}>verified</span>
           <span className={cardTitle}>Verification</span>
           <span className={cardDesc}>Email & address verify</span>
@@ -50,7 +52,8 @@ export function DashboardPage() {
           <span className={cardDesc}>System status</span>
         </Link>
       </nav>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }
 
@@ -75,7 +78,7 @@ const subtitle = css({
 
 const versionText = css({
   fontSize: "sm",
-  color: "text.tertiary",
+  color: "text.muted",
   marginBottom: "24px",
   fontFamily: "mono",
 });
@@ -94,12 +97,12 @@ const card = css({
   borderRadius: "12px",
   border: "1px solid",
   borderColor: "border.default",
-  background: "bg.surface",
+  background: "bg.card",
   textDecoration: "none",
   transition: "box-shadow 0.15s ease",
   _hover: {
     boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-    borderColor: "border.hover",
+    borderColor: "accent",
   },
 });
 

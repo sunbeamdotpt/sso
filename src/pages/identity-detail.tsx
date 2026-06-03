@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useParams, Link, useNavigate } from "@tanstack/react-router";
 import { useRestQuery, useRestMutation, useAuth } from "@sunbeam/g2v";
-import { Badge, Tabs, Icon, Button, ScrollArea, Toast, TextInput, Checkbox, TagsInput } from "@sunbeam/beam-ui";
+import { Badge, Tabs, Icon, Button, Toast, TextInput, Checkbox, TagsInput, ScrollArea } from "@sunbeam/beam-ui";
 import { css } from "styled-system/css";
 import { api } from "../api/client.ts";
 import type { Identity, IdentitySchema, UpdateIdentity, VerifiableAddress } from "../api/types.ts";
@@ -119,7 +119,7 @@ function StructuredValue({ value, depth = 0 }: { value: unknown; depth?: number 
       <div className={css({ display: "flex", flexDirection: "column", gap: "4px" })}>
         {value.map((item, i) => (
           <div key={i} className={css({ display: "flex", alignItems: "baseline", gap: "8px" })}>
-            <span className={css({ fontSize: "xs", color: "text.tertiary" })}>•</span>
+            <span className={css({ fontSize: "xs", color: "text.muted" })}>•</span>
             <StructuredValue value={item} depth={depth + 1} />
           </div>
         ))}
@@ -149,7 +149,7 @@ function StructuredValue({ value, depth = 0 }: { value: unknown; depth?: number 
               className={css({
                 fontSize: "xs",
                 fontWeight: "semibold",
-                color: "text.tertiary",
+                color: "text.muted",
                 textTransform: "capitalize",
               })}
             >
@@ -323,7 +323,7 @@ function EditableValue({
             borderRadius: "md",
             border: "1px solid",
             borderColor: "border.subtle",
-            backgroundColor: "bg.surface",
+            backgroundColor: "bg.card",
           })}
         >
           {Object.entries(value).map(([k, v]) => (
@@ -343,7 +343,7 @@ function EditableValue({
   return (
     <div className={css({ display: "flex", flexDirection: "column", gap: "4px" })}>
       <span className={formLabel}>{label}</span>
-      <div className={css({ padding: "12px", borderRadius: "md", backgroundColor: "bg.subtle" })}>
+      <div className={css({ padding: "12px", borderRadius: "md", backgroundColor: "bg.card" })}>
         <StructuredValue value={value} />
       </div>
       <p className={css({ fontSize: "xs", color: "text.muted" })}>
@@ -628,113 +628,6 @@ function InfoField({
 }
 
 /* ------------------------------------------------------------------ */
-/* Dummy data                                                          */
-/* ------------------------------------------------------------------ */
-
-const DUMMY_IDENTITY: Identity = {
-  id: "emp_7f3a9d2e-1b5c-4e8f-a6d3-9c2e1f4a8b5d",
-  schema_id: "employee",
-  schema_url: "https://schemas.sunbeam.studio/employee.json",
-  state: "active",
-  state_changed_at: "2026-05-15T09:30:00.000Z",
-  traits: {
-    email: "sienna@sunbeam.pt",
-    given_name: "Sienna",
-    family_name: "Vasquez",
-    middle_name: "Marie",
-    nickname: "sie",
-    picture: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=256&h=256&fit=crop",
-    phone_number: "+351 912 345 678",
-    job_title: "Founder & CTO",
-    department: "Engineering",
-    office_location: "Lisbon, Portugal",
-  },
-  verifiable_addresses: [
-    {
-      id: "addr_1a2b3c4d",
-      value: "sienna@sunbeam.pt",
-      verified: true,
-      via: "email",
-      status: "completed",
-      verified_at: "2026-05-10T14:22:00.000Z",
-      created_at: "2026-05-01T10:00:00.000Z",
-      updated_at: "2026-05-10T14:22:00.000Z",
-    },
-    {
-      id: "addr_5e6f7g8h",
-      value: "sienna.vasquez@personal.com",
-      verified: false,
-      via: "email",
-      status: "pending",
-      created_at: "2026-05-18T11:30:00.000Z",
-      updated_at: "2026-05-18T11:30:00.000Z",
-    },
-  ],
-  recovery_addresses: [
-    {
-      id: "rec_9i0j1k2l",
-      value: "sienna@sunbeam.pt",
-      via: "email",
-      created_at: "2026-05-01T10:00:00.000Z",
-      updated_at: "2026-05-01T10:00:00.000Z",
-    },
-  ],
-  metadata_public: {
-    pronouns: "she/her",
-    timezone: "Europe/Lisbon",
-    preferred_language: "en",
-    bio: "Building the future of creative infrastructure. Obsessed with distributed systems, design, and making technology invisible.",
-    social: {
-      github: "sienna-v",
-      bluesky: "@sienna.sunbeam.pt",
-    },
-  },
-  metadata_admin: {
-    onboarding_completed: true,
-    onboarding_date: "2026-05-01",
-    access_level: "admin",
-    teams: ["engineering", "design", "leadership"],
-    reports_to: null,
-    employee_id: "SB-001",
-    cost_center: "CC-ENG-001",
-  },
-  organization_id: "org_sunbeam_studios",
-  created_at: "2026-05-01T10:00:00.000Z",
-  updated_at: "2026-05-20T16:45:00.000Z",
-};
-
-const DUMMY_SCHEMA: IdentitySchema = {
-  id: "employee",
-  schema: {
-    $id: "https://schemas.sunbeam.studio/employee.json",
-    $schema: "http://json-schema.org/draft-07/schema#",
-    title: "Employee",
-    type: "object",
-    properties: {
-      traits: {
-        type: "object",
-        properties: {
-          email: { type: "string", format: "email", title: "Email" },
-          given_name: { type: "string", title: "First name" },
-          family_name: { type: "string", title: "Last name" },
-          middle_name: { type: "string", title: "Middle name" },
-          nickname: { type: "string", title: "Nickname" },
-          picture: { type: "string", format: "uri", title: "Profile picture" },
-          phone_number: { type: "string", title: "Phone number" },
-          job_title: { type: "string", title: "Job title" },
-          department: { type: "string", title: "Department" },
-          office_location: { type: "string", title: "Office location" },
-        },
-        required: ["email"],
-        additionalProperties: false,
-      },
-    },
-  },
-};
-
-const USE_DUMMY_DATA = import.meta.env.DEV;
-
-/* ------------------------------------------------------------------ */
 /* Main page                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -747,8 +640,8 @@ export function IdentityDetailPage() {
   const userClaims = claims as { sub?: string; isAdmin?: boolean } | undefined;
   const isAdmin = userClaims?.isAdmin ?? false;
   const isOwner = userClaims?.sub === id;
-  const canEdit = isOwner || isAdmin || USE_DUMMY_DATA;
-  const canDelete = isAdmin || USE_DUMMY_DATA;
+  const canEdit = isOwner || isAdmin;
+  const canDelete = isAdmin;
 
   /* Toast state */
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info"; visible: boolean }>({
@@ -765,7 +658,7 @@ export function IdentityDetailPage() {
 
   const query = useRestQuery<Identity>(api, `/identities/${id}`, {
     queryKey: ["identity", id],
-    enabled: Boolean(id) && !USE_DUMMY_DATA,
+    enabled: Boolean(id),
   });
 
   const schemaQuery = useRestQuery<IdentitySchema>(
@@ -773,7 +666,7 @@ export function IdentityDetailPage() {
     `/schemas/${query.data?.schema_id ?? ""}`,
     {
       queryKey: ["schema", query.data?.schema_id],
-      enabled: Boolean(query.data?.schema_id) && !USE_DUMMY_DATA,
+      enabled: Boolean(query.data?.schema_id),
     },
   );
 
@@ -785,8 +678,8 @@ export function IdentityDetailPage() {
 
   const deleteIdentity = useRestMutation<unknown, unknown>(api, "DELETE", `/identities/${id}`);
 
-  const identity = USE_DUMMY_DATA ? DUMMY_IDENTITY : query.data;
-  const schema = USE_DUMMY_DATA ? DUMMY_SCHEMA.schema : schemaQuery.data?.schema;
+  const identity = query.data;
+  const schema = schemaQuery.data?.schema;
   const labels = schema ? extractTraitLabels(schema) : new Map<string, string>();
 
   const enterEditMode = useCallback(() => {
@@ -842,9 +735,10 @@ export function IdentityDetailPage() {
   }, [identity, draftState, draftTraits, draftMetadataPublic, draftMetadataAdmin, updateIdentity, query, showToast]);
 
   return (
+    <ScrollArea maxHeight="calc(100vh - 88px)" direction="vertical">
     <div className={container}>
-      {query.isLoading && !USE_DUMMY_DATA && <p className={statusText}>Loading identity…</p>}
-      {query.error && !USE_DUMMY_DATA && <p className={errorText}>Error: {query.error.message}</p>}
+      {query.isLoading && <p className={statusText}>Loading identity…</p>}
+      {query.error && <p className={errorText}>Error: {query.error.message}</p>}
 
       {identity && (
         <>
@@ -933,7 +827,7 @@ export function IdentityDetailPage() {
           />
 
           {/* Tab content */}
-          <ScrollArea maxHeight="calc(100vh - 220px)" className={tabContent}>
+          <div className={tabContent}>
             <div className={tabPanelPadding}>
               {activeTab === "overview" && (
                 <>
@@ -1020,10 +914,11 @@ export function IdentityDetailPage() {
                 </>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </>
       )}
     </div>
+    </ScrollArea>
   );
 }
 
@@ -1077,7 +972,7 @@ const tabContent = css({
   borderRadius: "md",
   border: "1px solid",
   borderColor: "border.subtle",
-  backgroundColor: "bg.surface",
+  backgroundColor: "bg.card",
 });
 
 const tabPanelPadding = css({
@@ -1104,7 +999,7 @@ const infoField = css({
   borderRadius: "md",
   border: "1px solid",
   borderColor: "border.subtle",
-  backgroundColor: "bg.surface",
+  backgroundColor: "bg.card",
 });
 
 const infoLabel = css({
@@ -1112,7 +1007,7 @@ const infoLabel = css({
   fontWeight: "semibold",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
-  color: "text.tertiary",
+  color: "text.muted",
 });
 
 const infoValue = css({
@@ -1149,7 +1044,7 @@ const iconBtn = css({
   transition: "all 0.15s",
   _hover: {
     color: "text.primary",
-    backgroundColor: "bg.hover",
+    backgroundColor: "bg.card",
   },
 });
 
@@ -1169,7 +1064,7 @@ const traitCard = css({
   borderRadius: "md",
   border: "1px solid",
   borderColor: "border.subtle",
-  backgroundColor: "bg.surface",
+  backgroundColor: "bg.card",
 });
 
 const traitLabelStyle = css({
@@ -1177,7 +1072,7 @@ const traitLabelStyle = css({
   fontWeight: "semibold",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
-  color: "text.tertiary",
+  color: "text.muted",
 });
 
 const traitValue = css({
@@ -1223,7 +1118,7 @@ const addressCard = css({
   borderRadius: "md",
   border: "1px solid",
   borderColor: "border.subtle",
-  backgroundColor: "bg.surface",
+  backgroundColor: "bg.card",
 });
 
 const addressHeader = css({
@@ -1278,7 +1173,7 @@ const structuredCard = css({
   borderRadius: "md",
   border: "1px solid",
   borderColor: "border.subtle",
-  backgroundColor: "bg.surface",
+  backgroundColor: "bg.card",
 });
 
 const structuredLabel = css({
@@ -1286,7 +1181,7 @@ const structuredLabel = css({
   fontWeight: "semibold",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
-  color: "text.tertiary",
+  color: "text.muted",
 });
 
 /* Form styles */
@@ -1347,7 +1242,7 @@ const ghostLink = css({
   transition: "all 0.15s",
   _hover: {
     color: "text.primary",
-    backgroundColor: "bg.hover",
+    backgroundColor: "bg.card",
   },
 });
 

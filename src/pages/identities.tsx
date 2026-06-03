@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Link } from "@tanstack/react-router";
 import { useRestQuery, useRestMutation } from "@sunbeam/g2v";
-import { Table, Badge, Button, TextInput, Toast } from "@sunbeam/beam-ui";
+import { Table, Badge, Button, TextInput, Toast, ScrollArea } from "@sunbeam/beam-ui";
 import { css } from "styled-system/css";
 import { api } from "../api/client.ts";
 import type { Identity } from "../api/types.ts";
@@ -96,7 +96,8 @@ export function IdentitiesPage() {
   };
 
   return (
-    <div className={container}>
+    <ScrollArea maxHeight="calc(100vh - 88px)" direction="vertical">
+      <div className={container}>
       <Toast message={toast.message} variant={toast.variant} visible={toast.visible} onDismiss={hideToast} />
 
       <div className={header}>
@@ -153,7 +154,8 @@ export function IdentitiesPage() {
           className={css({ borderRadius: "md" })}
         />
       )}
-    </div>
+      </div>
+    </ScrollArea>
   );
 }
 
@@ -204,6 +206,6 @@ const createPanel = css({
   borderRadius: "md",
   border: "1px solid",
   borderColor: "border.subtle",
-  backgroundColor: "bg.surface",
+  backgroundColor: "bg.card",
   marginBottom: "24px",
 });
