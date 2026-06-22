@@ -1,0 +1,44 @@
+# Changelog
+
+All notable changes to the Sunbeam SSO portal will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.1.0] - 2026-06-22
+
+### Added
+
+- Mocked Playwright screenshot tests covering every page state (`/login`, `/consent`, `/oauth/login`, `/oauth/logged-out`, `/error`).
+- Server-side security middleware: rate limiting, security headers (CSP, HSTS, X-Frame-Options, etc.) and redirect validation.
+- Operational runbooks for login outages, consent/OAuth outages, 2FA/recovery outages, secret rotation, dependency audits and scaling.
+- `deno audit` task and CI step; frozen lockfile installs in lint/test workflows.
+- `.env.example` and `dev.toml.example` for local secret configuration.
+
+### Changed
+
+- **BREAKING**: Reduced the portal to its smallest feature set: login, logout, consent, 2FA and account recovery (merged into `/login`).
+- Default theme is now dark when no saved preference exists.
+- Updated vulnerable dependencies (`happy-dom`, `hono`, `vite`, `vitest`) to clear high/critical audit findings.
+- Aligned `sunbeam.yaml` package image with CI (`src.${SUNBEAM_REGISTRY}/studio/sso`).
+
+### Removed
+
+- Dashboard, identities, identity detail, settings, verification, health and schema pages and related server/client code.
+- Standalone recovery page; recovery is now handled within the unified `/login` flow.
+- Hardcoded development secrets and the committed `dev.toml` file.
+
+### Security
+
+- CSRF token generation and verification now use HMAC-SHA256 and a required `CSRF_COOKIE_SECRET`.
+- Session cookie extraction uses the exact `ory_kratos_session` name.
+- `return_to` parameters are validated against an allow-list of trusted origins.
+- Hydra `login_challenge` and `consent_challenge` values are validated as UUIDs.
+- Consent acceptance no longer auto-accepts; granted scopes are validated against requested scopes.
+- Disabled Kratos `leak_sensitive_values` and Hydra `OAUTH2_EXPOSE_INTERNAL_ERRORS` in production configs.
+- Dockerfile exposed port aligned with the application (`3102`) and image runs as non-root distroless.
+
+[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/sunbeamdotpt/sso/releases/tag/v0.1.0
