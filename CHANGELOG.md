@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc2] - 2026-06-22
+
+### Changed
+
+- Replaced the Deno/Hono backend and compiled binary with a Rust server built on `sunbeam-g2v` 0.3.
+- The Rust binary embeds the compiled Vite SPA at build time, so the final image contains only a single static binary.
+- Container image switched from `ghcr.io/sunbeamdotpt/proxy` base to a minimal distroless image with `tini`.
+
+### Removed
+
+- Deno server code (`main.ts`, `server/*.ts`) removed; API logic ported to `api/` Rust crate.
+- Dependency on the 398 MB Deno-compiled binary eliminated.
+
 ## [1.0.0-rc0] - 2026-06-22
 
 ### Added
@@ -40,5 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disabled Kratos `leak_sensitive_values` and Hydra `OAUTH2_EXPOSE_INTERNAL_ERRORS` in production configs.
 - Dockerfile exposed port aligned with the application (`3102`) and image runs as non-root distroless.
 
-[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc0...HEAD
+[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc2...HEAD
+[1.0.0-rc2]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc2
 [1.0.0-rc0]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc0
