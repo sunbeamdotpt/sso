@@ -1,10 +1,9 @@
 # Dependencies (rebuilt in Docker)
-ui/node_modules/
+node_modules/
+api/target/
 
 # Build artifacts (rebuilt in Docker)
-ui/dist/
-sso
-sso-*
+dist/
 
 # Dev/editor
 .git
