@@ -10,11 +10,18 @@ import {
   withTracing,
 } from "@sunbeam/g2v";
 import { authSelectors } from "@sunbeam/g2v/state";
+import { uiActions } from "@sunbeam/g2v/state";
 import { setupOtel } from "@sunbeam/g2v/otel";
 import { RouterProvider } from "@tanstack/react-router";
 import { router } from "./routes.tsx";
 import { AuthProvider } from "./providers/auth.tsx";
 import "./styles/global.css";
+
+// Default to dark theme when the user has no saved preference.
+const hasSavedTheme = Boolean(globalThis.localStorage?.getItem("sunbeam-g2v:ui"));
+if (!hasSavedTheme) {
+  uiActions.setTheme("dark");
+}
 
 const otlpUrl = import.meta.env.VITE_SUNBEAM_OTLP_URL;
 if (otlpUrl) {
