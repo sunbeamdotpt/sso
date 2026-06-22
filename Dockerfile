@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Stage 1: Build the Vite SPA.
-FROM denoland/deno:2.7.3 AS ui-builder
+# This stage always runs on the native build platform because Node/Deno
+# postinstall scripts (esbuild, protobufjs) fail under QEMU emulation.
+FROM --platform=$BUILDPLATFORM denoland/deno:2.7.3 AS ui-builder
 ARG VERSION=unknown
 ENV VERSION=${VERSION}
 WORKDIR /app
@@ -17,10 +19,10 @@ COPY styled-system/ ./styled-system/
 COPY scripts/ ./scripts/
 RUN deno task build
 
-# Stage 2: Build the Rust SSO server.
+# Stage 2: Build the Rust SSO server for the target architecture.
 # The server embeds the compiled dist folder from stage 1 so the final image
 # only needs the single static binary.
-FROM rust:1.96-slim-bookworm AS rust-builder
+FROM --platform=$TARGETPLATFORM rust:1.96-slim-bookworm AS rust-builder
 ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends \
       gcc g++ curl ca-certificates cmake pkg-config make && \
