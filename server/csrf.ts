@@ -50,7 +50,7 @@ export async function generateCsrfToken(): Promise<{
   cookie: string;
 }> {
   const raw = crypto.randomUUID();
-  const sig = await hmacSign(raw, CSRF_COOKIE_SECRET);
+  const sig = await hmacSign(raw, CSRF_COOKIE_SECRET!);
   const token = `${raw}.${sig}`;
   const secureFlag = isProduction() ? "; Secure" : "";
   const cookie =
@@ -83,7 +83,7 @@ async function verifyCsrfToken(req: Request): Promise<boolean> {
   const parts = headerToken.split(".");
   if (parts.length !== 2) return false;
   const [raw, sig] = parts;
-  return await hmacVerify(raw, sig, CSRF_COOKIE_SECRET);
+  return await hmacVerify(raw, sig, CSRF_COOKIE_SECRET!);
 }
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);

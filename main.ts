@@ -1,3 +1,4 @@
+/// <reference lib="deno.ns" />
 import { Hono } from "hono";
 import { serveStatic } from "hono/deno";
 import {
