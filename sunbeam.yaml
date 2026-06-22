@@ -2,7 +2,7 @@ schema: 1
 project:
   name: sso
   kind: node-ui
-  description: "Sunbeam SSO admin frontend — Kratos identity & self-service flow management."
+  description: "Sunbeam SSO portal — login, logout, consent, 2FA and account recovery."
 targets:
   build:
     exec: "deno task build"
@@ -19,7 +19,7 @@ targets:
   doc:
     exec: skip
   package:
-    exec: "docker buildx build --push -t src.${SUNBEAM_REGISTRY}/studio/sso-ui:latest ."
+    exec: "docker buildx build --push -t src.${SUNBEAM_REGISTRY}/studio/sso:latest ."
 deps:
   services: [kratos]
 outputs:

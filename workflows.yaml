@@ -81,6 +81,27 @@ workflows:
             echo "##wfe[output checkout_ok=true]"
             echo "##wfe[output commit=$COMMIT]"
 
+  # === audit: dependency vulnerability scan ===
+
+  - id: audit
+    name: Dependency Audit
+    version: 1
+    outputs:
+      audit_ok: bool
+    steps:
+      - name: deno-audit
+        type: kubernetes
+        outputs:
+          - name: audit_ok
+        config:
+          <<: *deno_config
+          run: |
+            set -euo pipefail
+            cd /workspace/sso
+            deno install --frozen
+            deno audit --level=high
+            echo "##wfe[output audit_ok=true]"
+
   # === lint: deno fmt/lint ===
 
   - id: lint
@@ -98,6 +119,7 @@ workflows:
           run: |
             set -euo pipefail
             cd /workspace/sso
+            deno install --frozen
             deno fmt --check main.ts server/ src/ deno.json
             deno lint main.ts server/ src/
             echo "##wfe[output deno_ok=true]"
@@ -119,7 +141,8 @@ workflows:
           run: |
             set -euo pipefail
             cd /workspace/sso
-            deno test -A --location http://localhost src/
+            deno install --frozen
+            deno task test:unit
             echo "##wfe[output test_ok=true]"
 
   # === tag: read version from deno.json ===
@@ -267,6 +290,7 @@ workflows:
       branch: string?
     outputs:
       version: string
+      audit_ok: bool
       test_ok: bool
       image_pushed: bool
       released: bool
@@ -278,6 +302,14 @@ workflows:
           - name: commit
         config:
           workflow: checkout
+          version: 1
+
+      - name: run-audit
+        type: workflow
+        outputs:
+          - name: audit_ok
+        config:
+          workflow: audit
           version: 1
 
       - name: run-lint

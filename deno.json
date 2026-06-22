@@ -18,6 +18,8 @@
     "test:e2e": "deno run -A npm:playwright test",
     "test:e2e:ui": "deno run -A npm:playwright test --ui",
     "test:e2e:debug": "deno run -A npm:playwright test --debug",
+    "audit": "deno audit --level=high",
+    "audit:fix": "deno audit --fix",
     "seed:dev": "deno run --allow-net scripts/seed-dev.ts"
   },
   "imports": {
@@ -38,17 +40,18 @@
     "@legendapp/state": "npm:@legendapp/state@^1.0.0",
     "@ark-ui/react": "npm:@ark-ui/react@^4.0.0",
     "@pandacss/dev": "npm:@pandacss/dev@^1.9.1",
-    "vite": "npm:vite@^6.0.0",
+    "vite": "npm:vite@^6.4.3",
     "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^4.3.0",
-    "vitest": "npm:vitest@^3.0.0",
-    "@vitest/coverage-v8": "npm:@vitest/coverage-v8@^3.0.0",
-    "happy-dom": "npm:happy-dom@^17.0.0",
+    "vitest": "npm:vitest@^3.2.0",
+    "@vitest/coverage-v8": "npm:@vitest/coverage-v8@^3.2.0",
+    "happy-dom": "npm:happy-dom@^20.8.9",
     "@testing-library/react": "npm:@testing-library/react@^16.0.0",
     "@testing-library/jest-dom": "npm:@testing-library/jest-dom@^6.0.0",
     "typescript": "npm:typescript@^5.6.0",
     "styled-system/css": "./styled-system/css/index.mjs",
     "styled-system/": "./styled-system/",
-    "hono": "npm:hono@^4.12.0"
+    "hono": "npm:hono@^4.12.25",
+    "protobufjs": "npm:protobufjs@^7.6.2"
   },
   "nodeModulesDir": "auto",
   "compilerOptions": {
