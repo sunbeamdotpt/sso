@@ -27,3 +27,11 @@ Thumbs.db
 test-results/
 e2e/screenshots/
 coverage/
+
+# Secrets and local config
+.env
+.env.local
+.env.*.local
+dev.toml
+*.pem
+*.key

@@ -1,0 +1,9 @@
+# Local development config — copy to dev.toml and replace placeholders.
+# Never commit real values.
+KRATOS_PUBLIC_URL = "http://localhost:4433"
+KRATOS_ADMIN_URL  = "http://localhost:4434"
+PUBLIC_URL        = "http://localhost:3102"
+PORT              = "3102"
+ADMIN_IDENTITY_IDS = ""
+CSRF_COOKIE_SECRET = "change-me-to-a-random-32-byte-string"
+COOKIE_SECRET      = "change-me-to-a-random-32-byte-string"

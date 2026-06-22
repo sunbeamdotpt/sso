@@ -25,5 +25,5 @@ FROM gcr.io/distroless/cc-debian12:nonroot
 WORKDIR /app
 COPY --from=deno-builder /app/sso ./
 COPY --from=deno-builder /app/dist ./dist
-EXPOSE 3000
+EXPOSE 3102
 ENTRYPOINT ["/app/sso"]
