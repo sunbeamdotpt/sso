@@ -49,6 +49,30 @@ Stalwart (the mail server) receives the email via SMTP from Kratos's courier wor
 
 ---
 
+## Backend Architecture
+
+The SSO portal server is a Rust binary in `api/` built on `sunbeam-g2v` 0.3.
+
+- `api/src/main.rs` — Axum server setup, security headers, CORS, tracing.
+- `api/src/kratos.rs` — Kratos public API proxy and `/api/auth/session`.
+- `api/src/hydra.rs` — Hydra admin orchestration (login/consent/logout accept/reject).
+- `api/src/static_files.rs` — Embedded Vite `dist/` served on `/`.
+- `api/src/config.rs` — Environment-based configuration.
+
+The compiled SPA is embedded into the Rust binary at build time via `rust-embed`, so the production container image contains only the single static binary plus `tini`.
+
+Build and test locally:
+
+```bash
+# Frontend
+deno task build
+
+# Rust backend
+cd api
+cargo build --release
+./target/release/sso
+```
+
 ## Semantic Memory Search (Optional)
 
 If a `sunbeam-memory` MCP server is available in your environment, use it for codebase search instead of `grep` or `rg`.
