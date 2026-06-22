@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-06-22
+## [1.0.0-rc0] - 2026-06-22
 
 ### Added
 
@@ -40,5 +40,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disabled Kratos `leak_sensitive_values` and Hydra `OAUTH2_EXPOSE_INTERNAL_ERRORS` in production configs.
 - Dockerfile exposed port aligned with the application (`3102`) and image runs as non-root distroless.
 
-[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/sunbeamdotpt/sso/releases/tag/v0.1.0
+[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc0...HEAD
+[1.0.0-rc0]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc0
