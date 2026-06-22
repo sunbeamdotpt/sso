@@ -28,6 +28,7 @@ ARG TARGETARCH
 ARG BUILDARCH
 RUN apt-get update && apt-get install -y --no-install-recommends \
       gcc g++ gcc-aarch64-linux-gnu \
+      libc6-dev-arm64-cross linux-libc-dev-arm64-cross \
       curl ca-certificates cmake pkg-config make protobuf-compiler && \
     rm -rf /var/lib/apt/lists/*
 RUN rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
