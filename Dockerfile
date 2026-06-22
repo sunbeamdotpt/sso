@@ -25,7 +25,7 @@ RUN deno task build
 FROM --platform=$TARGETPLATFORM rust:1.96-slim-bookworm AS rust-builder
 ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      gcc g++ curl ca-certificates cmake pkg-config make && \
+      gcc g++ curl ca-certificates cmake pkg-config make protobuf-compiler && \
     rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY api/ ./api/
