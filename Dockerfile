@@ -1,5 +1,7 @@
 # Stage 1: Build UI and compile Deno binary
 FROM denoland/deno:2.7.3 AS deno-builder
+ARG VERSION=unknown
+ENV VERSION=${VERSION}
 WORKDIR /app
 COPY deno.json deno.lock* ./
 COPY src/ ./src/
