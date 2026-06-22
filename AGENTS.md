@@ -46,3 +46,17 @@ This returns the full email body including the numeric verification code and the
 ### Note on Stalwart
 
 Stalwart (the mail server) receives the email via SMTP from Kratos's courier worker, but the email content is easier to retrieve directly from the Kratos database rather than querying Stalwart's RocksDB storage or web admin API.
+
+---
+
+## Semantic Memory Search (Optional)
+
+If a `sunbeam-memory` MCP server is available in your environment, use it for codebase search instead of `grep` or `rg`.
+
+1. **Initialize the repository first.** Before searching, ensure this codebase is indexed:
+   - Call `add_watch_target` with the absolute path to this repository.
+   - Wait for indexing to complete, then search.
+2. **Prefer semantic search.** Use `search_facts` with natural-language queries about behavior, design decisions, known issues, and prior changes.
+3. **Store useful findings.** If you discover something future agents should remember (a gotcha, invariant, or decision), call `store_fact` with a concise note and a source URN when possible.
+
+`sunbeam-memory` is **optional**. If the server is not available, skip these steps and use `grep` / `rg` / `Read` as usual. Do not fail, stall, or ask the user to install it.
