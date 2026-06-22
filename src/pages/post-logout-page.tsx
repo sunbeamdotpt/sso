@@ -3,6 +3,7 @@ import { useSearch } from "@tanstack/react-router";
 import { css } from "styled-system/css";
 import { Button, Callout, Spinner } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
+import { isValidChallenge } from "../utils/redirect.ts";
 
 interface LogoutChallenge {
   challenge: string;
@@ -14,10 +15,11 @@ interface LogoutChallenge {
 
 export function PostLogoutPage() {
   const search = useSearch({ from: "/oauth/logged-out" });
-  const challenge = (search as Record<string, unknown>).logout_challenge as string | undefined;
+  const rawChallenge = (search as Record<string, unknown>).logout_challenge;
+  const challenge = isValidChallenge(rawChallenge) ? rawChallenge : undefined;
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [logoutChallenge, setLogoutChallenge] = useState<LogoutChallenge | null>(null);
+  const [_logoutChallenge, setLogoutChallenge] = useState<LogoutChallenge | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function PostLogoutPage() {
     try {
       const result = await api.post<{ redirect_to: string }>("/hydra/logout/accept", { body: { challenge } });
       if (result?.redirect_to) {
-        window.location.href = result.redirect_to;
+        globalThis.location.href = result.redirect_to;
       }
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Sign out failed");
@@ -49,7 +51,7 @@ export function PostLogoutPage() {
 
   async function handleCancel() {
     if (!challenge) {
-      window.history.back();
+      globalThis.history.back();
       return;
     }
     try {
@@ -57,7 +59,7 @@ export function PostLogoutPage() {
     } catch {
       // ignore
     }
-    window.history.back();
+    globalThis.history.back();
   }
 
   if (isLoading) {

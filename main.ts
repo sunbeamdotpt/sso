@@ -2,8 +2,6 @@ import { Hono } from "hono";
 import { serveStatic } from "hono/deno";
 import {
   authMiddleware,
-  identityOwnershipMiddleware,
-  revokeAllSessionsHandler,
   sessionHandler,
 } from "./server/auth.ts";
 import { proxyHandler } from "./server/proxy.ts";
@@ -17,13 +15,23 @@ import {
   getLogout,
   rejectConsent,
 } from "./server/hydra.ts";
-import { deleteAvatar, getAvatar, uploadAvatar } from "./server/s3.ts";
+import { rateLimitMiddleware, securityHeadersMiddleware } from "./server/security.ts";
 
 const app = new Hono();
+
+// Security headers on every response
+app.use("/*", securityHeadersMiddleware);
 
 // Health check -- no auth required
 app.get("/health", (c) =>
   c.json({ ok: true, time: new Date().toISOString() }));
+
+// Rate-limit auth endpoints (mutating methods)
+const authRateLimit = rateLimitMiddleware();
+app.use("/api/self-service/login/*", authRateLimit);
+app.use("/api/self-service/recovery/*", authRateLimit);
+app.use("/api/self-service/logout/*", authRateLimit);
+app.use("/api/hydra/*", authRateLimit);
 
 // Auth middleware on everything except /health
 app.use("/*", async (c, next) => {
@@ -34,9 +42,8 @@ app.use("/*", async (c, next) => {
 // CSRF protection on non-API state-mutating requests
 app.use("/*", csrfMiddleware);
 
-// Session endpoints
+// Session endpoint
 app.get("/api/auth/session", sessionHandler);
-app.delete("/api/auth/sessions", revokeAllSessionsHandler);
 
 // Flow proxy (public — cookies forwarded but no session check)
 app.get("/api/flow/error", flowErrorHandler);
@@ -50,15 +57,7 @@ app.get("/api/hydra/logout", getLogout);
 app.post("/api/hydra/logout/accept", acceptLogout);
 app.post("/api/hydra/login/accept", acceptLogin);
 
-// Avatar S3 proxy (auth required)
-app.put("/api/avatar", uploadAvatar);
-app.get("/api/avatar/:id", getAvatar);
-app.delete("/api/avatar", deleteAvatar);
-
-// Identity ownership checks (must come before catch-all /api/* proxy)
-app.use("/api/identities/:id", identityOwnershipMiddleware);
-
-// Proxy all other /api/* requests to Kratos Admin (admin required via authMiddleware)
+// Proxy all other /api/* requests to Kratos
 app.all("/api/*", proxyHandler);
 
 // Static files from dist

@@ -1,6 +1,6 @@
 version: v1.3.0
 
-dsn: postgres://sunbeam:sunbeam@postgres:5432/kratos?sslmode=disable
+dsn: ${DSN:-postgres://sunbeam:sunbeam@postgres:5432/kratos?sslmode=disable}
 
 serve:
   public:
@@ -94,11 +94,11 @@ selfservice:
 log:
   level: info
   format: text
-  leak_sensitive_values: true
+  leak_sensitive_values: false
 
 courier:
   smtp:
-    connection_uri: smtps://test:test@stalwart:1025/?skip_ssl_verify=true&legacy_ssl=true
+    connection_uri: ${SMTP_CONNECTION_URI:-smtps://test:test@stalwart:1025/?skip_ssl_verify=true&legacy_ssl=true}
 
 identity:
   default_schema_id: default
@@ -116,4 +116,4 @@ session:
 
 secrets:
   cookie:
-    - dev-cookie-secret-32-bytes-min---
+    - ${COOKIE_SECRET}

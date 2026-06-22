@@ -128,21 +128,6 @@ export default defineConfig({
     port: 5175,
     strictPort: true,
     proxy: {
-      "/api/identities": {
-        target: "http://localhost:4434",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "/admin"),
-      },
-      "/api/schemas": {
-        target: "http://localhost:4433",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      },
-      "/api/version": {
-        target: "http://localhost:4434",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "/admin"),
-      },
       "/self-service": {
         target: "http://localhost:4433",
         changeOrigin: true,

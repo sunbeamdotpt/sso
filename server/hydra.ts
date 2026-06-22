@@ -89,32 +89,6 @@ export async function getConsent(c: Context): Promise<Response> {
       `/admin/oauth2/auth/requests/consent?consent_challenge=${challenge}`,
     );
     const data = await resp.json();
-
-    // Auto-accept all consent requests — all our clients are internal/trusted.
-    // Hydra's skip_consent should prevent reaching here, but belt-and-suspenders.
-    {
-      const idTokenClaims = await getIdentityClaims(
-        data.subject,
-        data.requested_scope,
-      );
-      const acceptResp = await hydraFetch(
-        `/admin/oauth2/auth/requests/consent/accept?consent_challenge=${challenge}`,
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            grant_scope: data.requested_scope,
-            grant_access_token_audience:
-              data.requested_access_token_audience,
-            remember: true,
-            remember_for: 2592000,
-            session: { id_token: idTokenClaims },
-          }),
-        },
-      );
-      const acceptData = await acceptResp.json();
-      return c.json({ redirect_to: acceptData.redirect_to, auto: true });
-    }
-
     return c.json(data);
   } catch {
     return c.text("Hydra unavailable", 502);
@@ -134,9 +108,15 @@ export async function acceptConsent(c: Context): Promise<Response> {
     );
     const consentData = await consentResp.json();
 
+    // Only allow granting scopes that were actually requested
+    const requestedScopes = new Set<string>(consentData.requested_scope ?? []);
+    const grantedScopes = Array.isArray(grantScope)
+      ? grantScope.filter((s: unknown) => requestedScopes.has(String(s)))
+      : consentData.requested_scope ?? [];
+
     const idTokenClaims = await getIdentityClaims(
       consentData.subject,
-      grantScope ?? consentData.requested_scope,
+      grantedScopes,
     );
 
     const resp = await hydraFetch(
@@ -144,7 +124,7 @@ export async function acceptConsent(c: Context): Promise<Response> {
       {
         method: "PUT",
         body: JSON.stringify({
-          grant_scope: grantScope,
+          grant_scope: grantedScopes,
           remember: remember ?? false,
           remember_for: 0,
           session: { id_token: idTokenClaims },

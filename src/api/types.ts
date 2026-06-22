@@ -73,6 +73,7 @@ export interface LoginFlow {
   state?: string;
   requested_aal?: "aal1" | "aal2";
   refresh?: boolean;
+  return_to?: string;
   created_at?: string;
   updated_at?: string;
 }

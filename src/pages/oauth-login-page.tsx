@@ -3,6 +3,7 @@ import { useSearch } from "@tanstack/react-router";
 import { css } from "styled-system/css";
 import { Button, TextInput, Callout, Spinner } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
+import { isValidChallenge } from "../utils/redirect.ts";
 
 interface LoginChallenge {
   challenge: string;
@@ -14,7 +15,8 @@ interface LoginChallenge {
 
 export function OAuthLoginPage() {
   const search = useSearch({ from: "/oauth/login" });
-  const challenge = (search as Record<string, unknown>).login_challenge as string | undefined;
+  const rawChallenge = (search as Record<string, unknown>).login_challenge;
+  const challenge = isValidChallenge(rawChallenge) ? rawChallenge : undefined;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -40,7 +42,7 @@ export function OAuthLoginPage() {
             })
             .then((result) => {
               if (result?.redirect_to) {
-                window.location.href = result.redirect_to;
+                globalThis.location.href = result.redirect_to;
               }
             });
         }
@@ -67,7 +69,7 @@ export function OAuthLoginPage() {
         },
       });
       if (result?.redirect_to) {
-        window.location.href = result.redirect_to;
+        globalThis.location.href = result.redirect_to;
       }
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Sign in failed");

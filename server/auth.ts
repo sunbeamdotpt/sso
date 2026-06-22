@@ -4,15 +4,10 @@ const KRATOS_PUBLIC_URL =
   Deno.env.get("KRATOS_PUBLIC_URL") ??
   "http://kratos-public.ory.svc.cluster.local:80";
 const PUBLIC_URL = Deno.env.get("PUBLIC_URL") ?? "http://localhost:3102";
-const KRATOS_ADMIN_URL =
-  Deno.env.get("KRATOS_ADMIN_URL") ??
-  "http://kratos-admin.ory.svc.cluster.local:80";
 
 // Routes that require no authentication at all
 const PUBLIC_ROUTES = new Set([
   "/login",
-  "/recovery",
-  "/verification",
   "/error",
   "/health",
 ]);
@@ -20,20 +15,13 @@ const PUBLIC_ROUTES = new Set([
 // Routes that need CSRF but not a session (Hydra flows)
 const CSRF_ONLY_ROUTES = new Set(["/consent", "/logout"]);
 
-function getAdminList(): string[] {
-  const raw = Deno.env.get("ADMIN_IDENTITY_IDS") ?? "";
-  if (!raw.trim()) return [];
-  return raw.split(",").map((s) => s.trim()).filter(Boolean);
-}
+const SESSION_COOKIE_NAME = "ory_kratos_session";
 
 function extractSessionCookie(cookieHeader: string): string | null {
   const cookies = cookieHeader.split(";").map((c) => c.trim());
   for (const cookie of cookies) {
-    if (
-      cookie.startsWith("ory_session_") ||
-      cookie.startsWith("ory_kratos_session")
-    ) {
-      return cookie;
+    if (cookie.startsWith(`${SESSION_COOKIE_NAME}=`)) {
+      return cookie.slice(SESSION_COOKIE_NAME.length + 1);
     }
   }
   return null;
@@ -60,7 +48,7 @@ export async function getSession(
 
   try {
     const resp = await fetch(`${KRATOS_PUBLIC_URL}/sessions/whoami`, {
-      headers: { cookie: sessionCookie },
+      headers: { cookie: `${SESSION_COOKIE_NAME}=${sessionCookie}` },
     });
     if (resp.status === 403) {
       // Session exists but AAL is too low — need 2FA step-up
@@ -83,31 +71,7 @@ export async function getSession(
   }
 }
 
-/** Check if an identity has any 2FA method (TOTP or WebAuthn) configured. */
-async function has2fa(identityId: string): Promise<boolean> {
-  try {
-    const resp = await fetch(
-      `${KRATOS_ADMIN_URL}/admin/identities/${identityId}?include_credential=totp&include_credential=webauthn`,
-    );
-    if (!resp.ok) return true; // fail open — don't block on admin API errors
-    const identity = await resp.json();
-    const creds = identity?.credentials ?? {};
-    const hasTOTP = creds.totp?.identifiers?.length > 0;
-    const hasWebAuthn = creds.webauthn?.identifiers?.length > 0;
-    return hasTOTP || hasWebAuthn;
-  } catch {
-    return true; // fail open
-  }
-}
-
-export function isAdmin(identityId: string, email: string): boolean {
-  const adminList = getAdminList();
-  if (adminList.length === 0) return true; // bootstrap mode
-  return adminList.includes(identityId) || adminList.includes(email);
-}
-
 function isPublicRoute(path: string): boolean {
-  // Exact match or path starts with the public route + /
   for (const route of PUBLIC_ROUTES) {
     if (path === route || path.startsWith(route + "/")) return true;
   }
@@ -125,72 +89,6 @@ function isCsrfOnlyRoute(path: string): boolean {
   // Hydra proxy endpoints
   if (path.startsWith("/api/hydra/")) return true;
   return false;
-}
-
-function isAdminRoute(path: string): boolean {
-  // Admin API proxy (Kratos admin) and admin-only UI routes
-  const adminPrefixes = [
-    "/api/identities",
-    "/api/admin",
-    "/api/sessions",
-    "/api/courier",
-    "/identities",
-    "/sessions",
-    "/courier",
-    "/schemas",
-  ];
-  for (const prefix of adminPrefixes) {
-    if (
-      (path === prefix || path.startsWith(prefix + "/") ||
-        path.startsWith(prefix + "?")) &&
-      // Allow non-admins to view/edit their own identity
-      !(prefix === "/api/identities" &&
-        /^\/api\/identities\/[^\/]+$/.test(path)) &&
-      !(prefix === "/identities" &&
-        /^\/identities\/[^\/]+$/.test(path))
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
-export async function identityOwnershipMiddleware(c: Context, next: Next) {
-  const path = c.req.path;
-  const match = path.match(/^\/api\/identities\/([^\/]+)$/);
-  if (!match) {
-    return await next();
-  }
-
-  const targetId = match[1];
-  const identity = c.get("identity");
-  const isAdmin = c.get("isAdmin");
-
-  // Allow GET for owner or admin
-  if (c.req.method === "GET") {
-    if (identity?.id === targetId || isAdmin) {
-      return await next();
-    }
-    return c.json({ error: "Forbidden" }, 403);
-  }
-
-  // Allow PUT for owner or admin
-  if (c.req.method === "PUT") {
-    if (identity?.id === targetId || isAdmin) {
-      return await next();
-    }
-    return c.json({ error: "Forbidden" }, 403);
-  }
-
-  // Allow DELETE for admin only
-  if (c.req.method === "DELETE") {
-    if (isAdmin) {
-      return await next();
-    }
-    return c.json({ error: "Forbidden" }, 403);
-  }
-
-  await next();
 }
 
 export async function authMiddleware(c: Context, next: Next) {
@@ -213,14 +111,12 @@ export async function authMiddleware(c: Context, next: Next) {
   );
 
   if (needsAal2) {
-    // Session exists but needs 2FA — redirect to step-up login
     if (
       path.startsWith("/api/") ||
       c.req.header("accept")?.includes("application/json")
     ) {
       return c.json({ error: "AAL2 required", redirectTo }, 403);
     }
-    // Use Kratos-provided redirect URL if available, otherwise construct one
     if (redirectTo) {
       return c.redirect(redirectTo, 302);
     }
@@ -232,7 +128,6 @@ export async function authMiddleware(c: Context, next: Next) {
   }
 
   if (!sessionInfo) {
-    // API requests get 401, browser requests get redirected
     if (
       path.startsWith("/api/") ||
       c.req.header("accept")?.includes("application/json")
@@ -249,67 +144,11 @@ export async function authMiddleware(c: Context, next: Next) {
     email: sessionInfo.email,
     session: sessionInfo.session,
   });
-  c.set("isAdmin", isAdmin(sessionInfo.id, sessionInfo.email));
-
-  // 2FA enrollment check — force users to set up TOTP/WebAuthn before using the app.
-  // Allow /security, /api/auth/*, /api/flow/*, and /kratos/* through so they can
-  // actually complete the setup flow.
-  const skipMfaCheck = path === "/onboarding" || path.startsWith("/onboarding/") ||
-    path.startsWith("/api/auth/") || path.startsWith("/api/flow/") ||
-    path.startsWith("/api/avatar/") || path.startsWith("/api/health/") ||
-    path === "/health" || path.startsWith("/kratos/");
-  if (!skipMfaCheck) {
-    const userHas2fa = await has2fa(sessionInfo.id);
-    c.set("has2fa", userHas2fa);
-    if (!userHas2fa) {
-      if (
-        path.startsWith("/api/") ||
-        c.req.header("accept")?.includes("application/json")
-      ) {
-        return c.json({ error: "2FA setup required", needs2faSetup: true }, 403);
-      }
-      return c.redirect("/onboarding", 302);
-    }
-  }
-
-  // Admin-only routes: check admin status
-  if (isAdminRoute(path)) {
-    if (!c.get("isAdmin")) {
-      if (
-        path.startsWith("/api/") ||
-        c.req.header("accept")?.includes("application/json")
-      ) {
-        return c.json({ error: "Forbidden" }, 403);
-      }
-      return c.redirect("/settings", 302);
-    }
-  }
 
   await next();
 }
 
-/** DELETE /api/auth/sessions — revokes ALL sessions for the current identity. */
-export async function revokeAllSessionsHandler(c: Context): Promise<Response> {
-  const identity = c.get("identity");
-  if (!identity?.id) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-
-  try {
-    const resp = await fetch(
-      `${KRATOS_ADMIN_URL}/admin/identities/${identity.id}/sessions`,
-      { method: "DELETE" },
-    );
-    if (resp.status === 204 || resp.status === 200) {
-      return c.json({ ok: true });
-    }
-    return c.json({ error: "Failed to revoke sessions" }, 500);
-  } catch {
-    return c.json({ error: "Failed to revoke sessions" }, 500);
-  }
-}
-
-/** GET /api/auth/session — returns current session + admin status. */
+/** GET /api/auth/session — returns current session info. */
 export async function sessionHandler(c: Context): Promise<Response> {
   const cookieHeader = c.req.header("cookie") ?? "";
   const { info: sessionInfo, needsAal2, redirectTo } = await getSession(
@@ -324,10 +163,5 @@ export async function sessionHandler(c: Context): Promise<Response> {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  const userHas2fa = await has2fa(sessionInfo.id);
-  return c.json({
-    session: sessionInfo.session,
-    isAdmin: isAdmin(sessionInfo.id, sessionInfo.email),
-    needs2faSetup: !userHas2fa,
-  });
+  return c.json({ session: sessionInfo.session });
 }

@@ -2,78 +2,22 @@ import {
   createRouter,
   createRoute,
   createRootRoute,
-  Navigate,
 } from "@tanstack/react-router";
-import { useAuth } from "@sunbeam/g2v";
 import { App } from "./app.tsx";
-import { DashboardPage } from "./pages/dashboard.tsx";
-import { IdentitiesPage } from "./pages/identities.tsx";
-import { IdentityDetailPage } from "./pages/identity-detail.tsx";
-import { SchemaDetailPage } from "./pages/schema-detail.tsx";
 import { LoginFlowPage } from "./pages/login-flow.tsx";
-import { RecoveryFlowPage } from "./pages/recovery-flow.tsx";
-import { SettingsFlowPage } from "./pages/settings-flow.tsx";
-import { VerificationFlowPage } from "./pages/verification-flow.tsx";
-import { HealthPage } from "./pages/health.tsx";
 import { ConsentPage } from "./pages/consent-page.tsx";
 import { OAuthLoginPage } from "./pages/oauth-login-page.tsx";
 import { PostLogoutPage } from "./pages/post-logout-page.tsx";
 import { ErrorPage } from "./pages/error-page.tsx";
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" />;
-  return <>{children}</>;
-}
-
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
-  if (isAuthenticated) return <Navigate to="/" />;
+  // Keep the login page renderable even if already authenticated;
+  // the page itself decides whether to show the form or success state.
   return <>{children}</>;
 }
 
 const rootRoute = createRootRoute({
   component: App,
-});
-
-const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  component: () => (
-    <ProtectedRoute>
-      <DashboardPage />
-    </ProtectedRoute>
-  ),
-});
-
-const identitiesRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/identities",
-  component: () => (
-    <ProtectedRoute>
-      <IdentitiesPage />
-    </ProtectedRoute>
-  ),
-});
-
-const identityDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/identities/$id",
-  component: () => (
-    <ProtectedRoute>
-      <IdentityDetailPage />
-    </ProtectedRoute>
-  ),
-});
-
-const schemaDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/schemas/$id",
-  component: () => (
-    <ProtectedRoute>
-      <SchemaDetailPage />
-    </ProtectedRoute>
-  ),
 });
 
 const loginRoute = createRoute({
@@ -83,46 +27,6 @@ const loginRoute = createRoute({
     <PublicRoute>
       <LoginFlowPage />
     </PublicRoute>
-  ),
-});
-
-const recoveryRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/recovery",
-  component: () => (
-    <PublicRoute>
-      <RecoveryFlowPage />
-    </PublicRoute>
-  ),
-});
-
-const settingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/settings",
-  component: () => (
-    <ProtectedRoute>
-      <SettingsFlowPage />
-    </ProtectedRoute>
-  ),
-});
-
-const verificationRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/auth/verification",
-  component: () => (
-    <PublicRoute>
-      <VerificationFlowPage />
-    </PublicRoute>
-  ),
-});
-
-const healthRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/health",
-  component: () => (
-    <ProtectedRoute>
-      <HealthPage />
-    </ProtectedRoute>
   ),
 });
 
@@ -151,15 +55,7 @@ const errorRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
-  indexRoute,
-  identitiesRoute,
-  identityDetailRoute,
-  schemaDetailRoute,
   loginRoute,
-  recoveryRoute,
-  settingsRoute,
-  verificationRoute,
-  healthRoute,
   consentRoute,
   oauthLoginRoute,
   oauthLoggedOutRoute,

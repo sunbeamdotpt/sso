@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { submitFlow, needsMfa, getAvailableMfaMethods } from "./flows.ts";
 import { mockLoginFlow } from "../test/mocks.ts";
+import type { LoginFlow } from "./types.ts";
 
 describe("submitFlow", () => {
   beforeEach(() => {
@@ -11,27 +12,27 @@ describe("submitFlow", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({
+      json: () => Promise.resolve({
         session: {
           identity: { id: "user-1", traits: { email: "test@example.com" } },
           authenticator_assurance_level: "aal1",
         },
       }),
     }));
-    const result = await submitFlow(mockLoginFlow as any, { identifier: "test", password: "pass" }, "password");
+    const result = await submitFlow(mockLoginFlow as LoginFlow, { identifier: "test", password: "pass" }, "password");
     expect(result.success).toBe(true);
     expect(result.session?.identity.id).toBe("user-1");
   });
 
-  it("returns updated flow on successful settings submit", async () => {
+  it("returns updated flow on successful submit", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({
-        ui: { action: "/settings", method: "POST", nodes: [], messages: [] },
+      json: () => Promise.resolve({
+        ui: { action: "/self-service/recovery", method: "POST", nodes: [], messages: [] },
       }),
     }));
-    const result = await submitFlow(mockLoginFlow as any, {}, "password");
+    const result = await submitFlow(mockLoginFlow as LoginFlow, {}, "code");
     expect(result.success).toBe(true);
     expect(result.flow).toBeDefined();
   });
@@ -40,11 +41,11 @@ describe("submitFlow", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: false,
       status: 400,
-      json: async () => ({
+      json: () => Promise.resolve({
         ui: { messages: [{ type: "error", text: "Invalid credentials" }], nodes: [] },
       }),
     }));
-    const result = await submitFlow(mockLoginFlow as any, { identifier: "bad", password: "bad" }, "password");
+    const result = await submitFlow(mockLoginFlow as LoginFlow, { identifier: "bad", password: "bad" }, "password");
     expect(result.success).toBe(false);
     expect(result.error).toBe("Invalid credentials");
   });
@@ -53,9 +54,9 @@ describe("submitFlow", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: false,
       status: 410,
-      json: async () => ({ error: { id: "self_service_flow_expired", code: 410 } }),
+      json: () => Promise.resolve({ error: { id: "self_service_flow_expired", code: 410 } }),
     }));
-    const result = await submitFlow(mockLoginFlow as any, {}, "password");
+    const result = await submitFlow(mockLoginFlow as LoginFlow, {}, "password");
     expect(result.success).toBe(false);
     expect(result.error).toBe("This session expired. Please try again.");
   });
@@ -64,9 +65,9 @@ describe("submitFlow", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: false,
       status: 422,
-      json: async () => ({ redirect_browser_to: "https://example.com/redirect" }),
+      json: () => Promise.resolve({ redirect_browser_to: "https://example.com/redirect" }),
     }));
-    const result = await submitFlow(mockLoginFlow as any, {}, "password");
+    const result = await submitFlow(mockLoginFlow as LoginFlow, {}, "password");
     expect(result.success).toBe(false);
     expect(result.redirect_browser_to).toBe("https://example.com/redirect");
   });
@@ -75,9 +76,9 @@ describe("submitFlow", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
-      json: async () => ({ error: { message: "Internal server error" } }),
+      json: () => Promise.resolve({ error: { message: "Internal server error" } }),
     }));
-    const result = await submitFlow(mockLoginFlow as any, {}, "password");
+    const result = await submitFlow(mockLoginFlow as LoginFlow, {}, "password");
     expect(result.success).toBe(false);
     expect(result.error).toBe("Internal server error");
   });
@@ -86,9 +87,9 @@ describe("submitFlow", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: false,
       status: 503,
-      json: async () => ({}),
+      json: () => Promise.resolve({}),
     }));
-    const result = await submitFlow(mockLoginFlow as any, {}, "password");
+    const result = await submitFlow(mockLoginFlow as LoginFlow, {}, "password");
     expect(result.success).toBe(false);
     expect(result.error).toBe("HTTP 503");
   });
@@ -97,9 +98,9 @@ describe("submitFlow", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({}),
+      json: () => Promise.resolve({}),
     }));
-    const result = await submitFlow(mockLoginFlow as any, {}, "password");
+    const result = await submitFlow(mockLoginFlow as LoginFlow, {}, "password");
     expect(result.success).toBe(false);
     expect(result.error).toBe("Unexpected response from flow.");
   });
@@ -107,10 +108,10 @@ describe("submitFlow", () => {
 
 describe("needsMfa", () => {
   it("returns true when requested_aal is aal2 and no state", () => {
-    expect(needsMfa({ requested_aal: "aal2" } as any)).toBe(true);
+    expect(needsMfa({ requested_aal: "aal2" } as LoginFlow)).toBe(true);
   });
   it("returns false when aal1", () => {
-    expect(needsMfa({ requested_aal: "aal1" } as any)).toBe(false);
+    expect(needsMfa({ requested_aal: "aal1" } as LoginFlow)).toBe(false);
   });
   it("returns false for undefined flow", () => {
     expect(needsMfa(undefined)).toBe(false);
@@ -120,11 +121,11 @@ describe("needsMfa", () => {
 describe("getAvailableMfaMethods", () => {
   it("returns totp and lookup_secret methods", () => {
     const flow = { ui: { nodes: [{ group: "totp" }, { group: "lookup_secret" }, { group: "default" }] } };
-    expect(getAvailableMfaMethods(flow as any)).toEqual(["totp", "lookup_secret"]);
+    expect(getAvailableMfaMethods(flow as LoginFlow)).toEqual(["totp", "lookup_secret"]);
   });
   it("returns webauthn method", () => {
     const flow = { ui: { nodes: [{ group: "webauthn" }] } };
-    expect(getAvailableMfaMethods(flow as any)).toEqual(["webauthn"]);
+    expect(getAvailableMfaMethods(flow as LoginFlow)).toEqual(["webauthn"]);
   });
   it("returns empty array for undefined flow", () => {
     expect(getAvailableMfaMethods(undefined)).toEqual([]);

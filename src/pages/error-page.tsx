@@ -1,13 +1,14 @@
 import { useSearch, Link } from "@tanstack/react-router";
 import { css } from "styled-system/css";
 import { Button } from "@sunbeam/beam-ui";
+import { sanitizeDisplayText } from "../utils/redirect.ts";
 
 export function ErrorPage() {
   const search = useSearch({ from: "/error" });
   const params = search as Record<string, unknown>;
-  const error = (params.error as string) ?? "unknown_error";
-  const errorDescription = (params.error_description as string) ?? "";
-  const errorHint = (params.error_hint as string) ?? "";
+  const error = sanitizeDisplayText(params.error) || "unknown_error";
+  const errorDescription = sanitizeDisplayText(params.error_description);
+  const errorHint = sanitizeDisplayText(params.error_hint);
 
   return (
     <div className={wrapper}>

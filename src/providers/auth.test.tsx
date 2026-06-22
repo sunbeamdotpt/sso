@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { validateSession, setUserSession, clearSession, AuthProvider } from "./auth.tsx";
 import { authActions } from "@sunbeam/g2v/state";
+import type { Identity } from "../api/types.ts";
 
 vi.mock("@sunbeam/g2v/state", async () => {
   const actual = await vi.importActual("@sunbeam/g2v/state");
@@ -20,21 +21,15 @@ describe("validateSession", () => {
   });
 
   it("returns true and hydrates auth store on active session", async () => {
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          active: true,
-          identity: { id: "user-1", traits: { email: "test@example.com" } },
-          authenticator_assurance_level: "aal2",
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ isAdmin: true }),
-      }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        active: true,
+        identity: { id: "user-1", traits: { email: "test@example.com" } },
+        authenticator_assurance_level: "aal2",
+      }),
+    }));
     const result = await validateSession();
     expect(result).toBe(true);
     expect(authActions.loginSuccess).toHaveBeenCalledWith(expect.objectContaining({
@@ -56,29 +51,11 @@ describe("validateSession", () => {
     expect(authActions.logout).toHaveBeenCalled();
   });
 
-  it("defaults isAdmin to false on /api/auth/session error", async () => {
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          active: true,
-          identity: { id: "user-1", traits: { email: "test@example.com" } },
-        }),
-      })
-      .mockRejectedValueOnce(new Error("Network error")));
-    const result = await validateSession();
-    expect(result).toBe(true);
-    expect(authActions.loginSuccess).toHaveBeenCalledWith(expect.objectContaining({
-      claims: expect.objectContaining({ sub: "user-1" }),
-    }));
-  });
-
   it("returns false when session is inactive", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ active: false, identity: { id: "user-1", traits: {} } }),
+      json: () => Promise.resolve({ active: false, identity: { id: "user-1", traits: {} } }),
     }));
     const result = await validateSession();
     expect(result).toBe(false);
@@ -87,20 +64,8 @@ describe("validateSession", () => {
 });
 
 describe("setUserSession", () => {
-  it("stores identity in auth store", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ isAdmin: false }),
-    }));
-    await setUserSession({ id: "user-1", traits: { email: "test@example.com" } } as any, "aal2");
-    expect(authActions.loginSuccess).toHaveBeenCalledWith(expect.objectContaining({
-      claims: expect.objectContaining({ sub: "user-1" }),
-    }));
-  });
-
-  it("defaults isAdmin to false on /api/auth/session error", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
-    await setUserSession({ id: "user-1", traits: { email: "test@example.com" } } as any, "aal2");
+  it("stores identity in auth store", () => {
+    setUserSession({ id: "user-1", traits: { email: "test@example.com" } } as Identity, "aal2");
     expect(authActions.loginSuccess).toHaveBeenCalledWith(expect.objectContaining({
       claims: expect.objectContaining({ sub: "user-1" }),
     }));
@@ -112,7 +77,7 @@ describe("clearSession", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ logout_token: "token-123" }),
+      json: () => Promise.resolve({ logout_token: "token-123" }),
     }));
     await clearSession();
     expect(globalThis.fetch).toHaveBeenCalledTimes(2);
@@ -123,7 +88,7 @@ describe("clearSession", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({}),
+      json: () => Promise.resolve({}),
     }));
     await clearSession();
     expect(authActions.logout).toHaveBeenCalled();
@@ -133,7 +98,7 @@ describe("clearSession", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
-      json: async () => ({}),
+      json: () => Promise.resolve({}),
     }));
     await clearSession();
     expect(authActions.logout).toHaveBeenCalled();
@@ -162,20 +127,14 @@ describe("AuthProvider", () => {
   });
 
   it("renders children after session validation", async () => {
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          active: true,
-          identity: { id: "user-1", traits: { email: "test@example.com" } },
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ isAdmin: false }),
-      }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        active: true,
+        identity: { id: "user-1", traits: { email: "test@example.com" } },
+      }),
+    }));
 
     render(
       <AuthProvider>

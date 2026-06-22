@@ -1,4 +1,4 @@
-import type { LoginFlow, SettingsFlow, UIFlow, GenericError } from "./types.ts";
+import type { LoginFlow, SettingsFlow, UIFlow } from "./types.ts";
 import { getFlowError, findNodeByName } from "./types.ts";
 
 export interface FlowSubmitResult {

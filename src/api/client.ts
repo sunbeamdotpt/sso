@@ -21,7 +21,7 @@ function kratosFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Resp
   // createRestClient injects Authorization: Bearer <token>.  For Kratos
   // we either replace it with X-Session-Token or remove it entirely when
   // relying on cookie-based auth.
-  const hadAuth = headers.get("Authorization");
+  const _hadAuth = headers.get("Authorization");
   headers.delete("Authorization");
 
   if (token && token !== "cookie") {

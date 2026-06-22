@@ -1,7 +1,12 @@
 import type { Context, Next } from "hono";
 
-const CSRF_COOKIE_SECRET =
-  Deno.env.get("CSRF_COOKIE_SECRET") ?? "dev-secret-change-in-production";
+const CSRF_COOKIE_SECRET = Deno.env.get("CSRF_COOKIE_SECRET");
+if (!CSRF_COOKIE_SECRET) {
+  throw new Error(
+    "CSRF_COOKIE_SECRET environment variable is required. " +
+      "Generate a random value (≥32 bytes) and set it before starting the server.",
+  );
+}
 const CSRF_COOKIE_NAME = "ory-csrf-token";
 
 const encoder = new TextEncoder();
@@ -35,6 +40,11 @@ async function hmacVerify(
   return result === 0;
 }
 
+function isProduction(): boolean {
+  return Deno.env.get("NODE_ENV") === "production" ||
+    Deno.env.get("COOKIE_SECURE") === "true";
+}
+
 export async function generateCsrfToken(): Promise<{
   token: string;
   cookie: string;
@@ -42,8 +52,9 @@ export async function generateCsrfToken(): Promise<{
   const raw = crypto.randomUUID();
   const sig = await hmacSign(raw, CSRF_COOKIE_SECRET);
   const token = `${raw}.${sig}`;
+  const secureFlag = isProduction() ? "; Secure" : "";
   const cookie =
-    `${CSRF_COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Strict`;
+    `${CSRF_COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Strict${secureFlag}`;
   return { token, cookie };
 }
 

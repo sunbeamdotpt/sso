@@ -3,6 +3,7 @@ import { useSearch } from "@tanstack/react-router";
 import { css } from "styled-system/css";
 import { Button, Checkbox, Callout, Spinner } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
+import { isValidChallenge } from "../utils/redirect.ts";
 
 interface ConsentFlow {
   challenge: string;
@@ -25,7 +26,8 @@ const SCOPE_DESCRIPTIONS: Record<string, string> = {
 
 export function ConsentPage() {
   const search = useSearch({ from: "/consent" });
-  const challenge = (search as Record<string, unknown>).consent_challenge as string | undefined;
+  const rawChallenge = (search as Record<string, unknown>).consent_challenge;
+  const challenge = isValidChallenge(rawChallenge) ? rawChallenge : undefined;
   const [remember, setRemember] = useState(false);
   const [scopeStates, setScopeStates] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -38,9 +40,21 @@ export function ConsentPage() {
     setIsLoading(true);
     api
       .get<ConsentFlow>(`/hydra/consent?challenge=${challenge}`)
-      .then((data) => {
-        if (data.skip && data.redirect_to) {
-          window.location.href = data.redirect_to;
+      .then(async (data) => {
+        // If Hydra says to skip consent, accept with all requested scopes.
+        if (data.skip) {
+          const result = await api.post<{ redirect_to: string }>("/hydra/consent/accept", {
+            body: {
+              challenge,
+              grant_scope: data.requested_scope ?? [],
+              remember: false,
+              remember_for: 0,
+              session: {},
+            },
+          });
+          if (result?.redirect_to) {
+            globalThis.location.href = result.redirect_to;
+          }
           return;
         }
         setConsent(data);
@@ -74,7 +88,7 @@ export function ConsentPage() {
         },
       });
       if (result?.redirect_to) {
-        window.location.href = result.redirect_to;
+        globalThis.location.href = result.redirect_to;
       }
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Failed to accept consent");
@@ -95,7 +109,7 @@ export function ConsentPage() {
         },
       });
       if (result?.redirect_to) {
-        window.location.href = result.redirect_to;
+        globalThis.location.href = result.redirect_to;
       }
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Failed to reject consent");
@@ -177,7 +191,7 @@ export function ConsentPage() {
           </Button>
         </div>
 
-        <p className={footer}>You can revoke access any time in Account → Connections.</p>
+        <p className={footer}>You can revoke access any time from your account settings.</p>
       </div>
     </div>
   );
