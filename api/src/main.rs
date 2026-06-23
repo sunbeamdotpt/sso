@@ -15,10 +15,12 @@ mod static_files;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Instant;
 
 use axum::{
     Router as AxumRouter,
     http::{HeaderValue, Method, header},
+    middleware::Next,
     response::{IntoResponse, Response},
     routing::get,
 };
@@ -36,6 +38,31 @@ use static_files::static_handler;
 /// Simple liveness probe.
 async fn health_handler() -> impl IntoResponse {
     axum::Json(serde_json::json!({ "ok": true }))
+}
+
+/// GDPR-compliant access log.
+///
+/// Logs method, path (query string stripped), response status and latency.
+/// Intentionally excludes IP addresses, user agents, cookies, tokens and query
+/// parameters so the log cannot be tied back to an individual user.
+async fn access_log_layer(
+    request: axum::extract::Request,
+    next: Next,
+) -> Response {
+    let method = request.method().clone();
+    let path = request.uri().path().to_string();
+    let start = Instant::now();
+
+    let response = next.run(request).await;
+
+    info!(
+        method = %method,
+        path = %path,
+        status = response.status().as_u16(),
+        duration_ms = start.elapsed().as_millis() as u64,
+        "request"
+    );
+    response
 }
 
 /// Security headers applied to every response.
@@ -109,7 +136,8 @@ async fn main() -> anyhow::Result<()> {
                 ])
                 .allow_headers(tower_http::cors::Any),
         )
-        .layer(TraceLayer::new_for_http());
+        .layer(TraceLayer::new_for_http())
+        .layer(axum::middleware::from_fn(access_log_layer));
 
     info!("sso portal listening on http://{}", bind_addr);
 
