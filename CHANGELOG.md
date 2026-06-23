@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc4] - 2026-06-23
+
+### Added
+
+- Dedicated `/recovery` page for password reset using Kratos recovery codes.
+- Recovery links with `flow` and `token` query parameters now land on `/recovery` and advance to the new-password step automatically.
+
+### Changed
+
+- Kratos recovery `ui_url` updated from `/auth/recovery` to `/recovery`.
+- Login page "Forgot your password?" link now navigates to `/recovery` instead of opening an inline recovery form.
+- Recovery E2E test updated to exercise the dedicated `/recovery` page.
+
 ## [1.0.0-rc3] - 2026-06-23
 
 ### Added
@@ -71,7 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disabled Kratos `leak_sensitive_values` and Hydra `OAUTH2_EXPOSE_INTERNAL_ERRORS` in production configs.
 - Dockerfile exposed port aligned with the application (`3102`) and image runs as non-root distroless.
 
-[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc3...HEAD
+[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc4...HEAD
+[1.0.0-rc4]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc4
 [1.0.0-rc3]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc3
 [1.0.0-rc2]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc2
 [1.0.0-rc0]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc0

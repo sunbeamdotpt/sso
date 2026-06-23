@@ -64,7 +64,7 @@ selfservice:
 
     recovery:
       enabled: true
-      ui_url: http://localhost:5175/auth/recovery
+      ui_url: http://localhost:5175/recovery
       use: code
       notify_unknown_recipients: false
 

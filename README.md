@@ -7,7 +7,7 @@ with a Vite/React frontend and a Rust backend powered by
 ## Scope
 
 - Login page (password + 2FA in a single flow)
-- Account recovery (single-page flow within `/login`)
+- Account recovery at `/recovery` (code and recovery-link methods)
 - OAuth consent page
 - OAuth login/logout orchestration for ORY Hydra
 - Session verification against ORY Kratos
@@ -75,8 +75,8 @@ on every `v*` tag.
 ## Release
 
 ```bash
-git tag -a v1.0.0-rc2 -m "v1.0.0-rc2"
-git push origin v1.0.0-rc2
+git tag -a v1.0.0-rc4 -m "v1.0.0-rc4"
+git push origin v1.0.0-rc4
 ```
 
 Then monitor the `Release Container` workflow in GitHub Actions.

@@ -14,11 +14,9 @@ import { setUserSession } from "../providers/auth.tsx";
 import { getAvailableMfaMethods, needsMfa, submitFlow } from "../api/flows.ts";
 import { storeRememberMePreference } from "../utils/remember-me.ts";
 import { getSafeReturnUrl } from "../utils/redirect.ts";
-import type { LoginFlow, RecoveryFlow } from "../api/types.ts";
+import type { LoginFlow } from "../api/types.ts";
 
-type PageMode =
-  | { type: "login"; step: "password" | "mfa" | "submitting" }
-  | { type: "recovery"; step: "email" | "code" | "submitting" | "success" };
+type PageMode = { type: "login"; step: "password" | "mfa" | "submitting" };
 
 function getKratosError(
   flow: {
@@ -87,13 +85,10 @@ export function LoginFlowPage() {
     step: "password",
   });
   const [loginFlow, setLoginFlow] = useState<LoginFlow | null>(null);
-  const [recoveryFlow, setRecoveryFlow] = useState<RecoveryFlow | null>(null);
   const [selectedMfaMethod, setSelectedMfaMethod] = useState<string>("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [recoveryEmail, setRecoveryEmail] = useState("");
-  const [recoveryCode, setRecoveryCode] = useState("");
   const [toast, setToast] = useState<
     { message: string; variant: "success" | "error" | "info"; visible: boolean }
   >({
@@ -121,14 +116,7 @@ export function LoginFlowPage() {
     { queryKey: flowId ? ["login-flow", flowId] : ["login-flow"] },
   );
 
-  const recoveryQuery = useRestQuery<RecoveryFlow>(
-    api,
-    "/self-service/recovery/browser",
-    { queryKey: ["recovery-flow"] },
-  );
-
   const currentLoginFlow = loginFlow ?? loginQuery.data ?? null;
-  const currentRecoveryFlow = recoveryFlow ?? recoveryQuery.data ?? null;
   const availableMethods = currentLoginFlow
     ? getAvailableMfaMethods(currentLoginFlow)
     : [];
@@ -136,14 +124,9 @@ export function LoginFlowPage() {
   const loginError = currentLoginFlow
     ? getKratosError(currentLoginFlow)
     : undefined;
-  const recoveryError = currentRecoveryFlow
-    ? getKratosError(currentRecoveryFlow)
-    : undefined;
   const oauthProviders = getOAuthProviders(currentLoginFlow);
 
   const isLoginSubmitting = mode.type === "login" && mode.step === "submitting";
-  const isRecoverySubmitting = mode.type === "recovery" &&
-    mode.step === "submitting";
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,109 +235,6 @@ export function LoginFlowPage() {
     hideToast();
   };
 
-  const handleRecoveryEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentRecoveryFlow?.ui?.action) return;
-
-    setMode({ type: "recovery", step: "submitting" });
-    hideToast();
-
-    const result = await submitFlow(
-      currentRecoveryFlow as RecoveryFlow & {
-        ui: NonNullable<RecoveryFlow["ui"]>;
-      },
-      { email: recoveryEmail },
-      "code",
-    );
-
-    if (result.success && result.flow) {
-      const updatedFlow = result.flow as RecoveryFlow;
-      setRecoveryFlow(updatedFlow);
-      const flowError = getKratosError(updatedFlow);
-      if (flowError) {
-        showToast(flowError, "error");
-        setMode({ type: "recovery", step: "email" });
-        return;
-      }
-      const hasCodeNode = updatedFlow.ui?.nodes?.some(
-        (n) => n.attributes.name === "code" || n.group === "code",
-      );
-      if (hasCodeNode) {
-        setMode({ type: "recovery", step: "code" });
-      } else {
-        showToast("Recovery email sent. Check your inbox.", "success");
-        setMode({ type: "recovery", step: "email" });
-      }
-      return;
-    }
-
-    if (result.error) {
-      if (result.error === "This session expired. Please try again.") {
-        setRecoveryFlow(null);
-        recoveryQuery.refetch();
-      } else if (result.flow) {
-        setRecoveryFlow(result.flow as RecoveryFlow);
-      }
-      showToast(result.error, "error");
-    } else {
-      showToast("Unexpected response from recovery flow.", "error");
-    }
-    setMode({ type: "recovery", step: "email" });
-  };
-
-  const handleRecoveryCodeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentRecoveryFlow?.ui?.action) return;
-
-    setMode({ type: "recovery", step: "submitting" });
-    hideToast();
-
-    const result = await submitFlow(
-      currentRecoveryFlow as RecoveryFlow & {
-        ui: NonNullable<RecoveryFlow["ui"]>;
-      },
-      { code: recoveryCode },
-      "code",
-    );
-
-    if (result.success || result.redirect_browser_to) {
-      showToast("Password reset successful!", "success");
-      setMode({ type: "recovery", step: "success" });
-      return;
-    }
-
-    if (result.error) {
-      if (result.error === "This session expired. Please try again.") {
-        setRecoveryFlow(null);
-        recoveryQuery.refetch();
-        setMode({ type: "recovery", step: "email" });
-      } else {
-        if (result.flow) {
-          setRecoveryFlow(result.flow as RecoveryFlow);
-        }
-        showToast(result.error, "error");
-        setMode({ type: "recovery", step: "code" });
-      }
-    } else {
-      showToast("Unexpected response from recovery flow.", "error");
-      setMode({ type: "recovery", step: "code" });
-    }
-  };
-
-  const switchToRecovery = () => {
-    setMode({ type: "recovery", step: "email" });
-    setRecoveryEmail("");
-    setRecoveryCode("");
-    hideToast();
-  };
-
-  const switchToLogin = () => {
-    setMode({ type: "login", step: "password" });
-    setRecoveryEmail("");
-    setRecoveryCode("");
-    hideToast();
-  };
-
   return (
     <div className={wrapper}>
       <Toast
@@ -445,13 +325,9 @@ export function LoginFlowPage() {
                   </a>
                 </span>
               )}
-              <button
-                type="button"
-                className={textLink}
-                onClick={switchToRecovery}
-              >
+              <a href="/recovery" className={textLink}>
                 Forgot your password?
-              </button>
+              </a>
             </div>
           </div>
         )}
@@ -492,87 +368,6 @@ export function LoginFlowPage() {
         </div>
       )}
 
-      {mode.type === "recovery" && mode.step === "email" && (
-        <div className={card}>
-          <h2 className={title}>Forgot Password</h2>
-          {recoveryError && (
-            <Callout variant="warning">{recoveryError}</Callout>
-          )}
-          <form onSubmit={handleRecoveryEmailSubmit} className={formStack}>
-            <p className={subtitle}>
-              Enter your email address and we&apos;ll send you a code to reset
-              your password.
-            </p>
-            <TextInput
-              label="Email"
-              type="email"
-              value={recoveryEmail}
-              onChange={setRecoveryEmail}
-              placeholder="you@example.com"
-              disabled={isRecoverySubmitting}
-            />
-            <Button variant="primary" type="submit" className={fullWidth}>
-              {isRecoverySubmitting ? "Loading…" : "Send Reset Code"}
-            </Button>
-          </form>
-          <div className={links}>
-            <button type="button" className={textLink} onClick={switchToLogin}>
-              Back to sign in
-            </button>
-          </div>
-        </div>
-      )}
-
-      {mode.type === "recovery" && mode.step === "code" && (
-        <div className={card}>
-          <h2 className={title}>Enter Recovery Code</h2>
-          <p className={subtitle}>Enter the code sent to your email.</p>
-          {recoveryError && <p className={errorText}>{recoveryError}</p>}
-          <form onSubmit={handleRecoveryCodeSubmit} className={formStack}>
-            <input
-              type="text"
-              className={codeInput}
-              placeholder="000000"
-              value={recoveryCode}
-              onChange={(e) =>
-                setRecoveryCode(e.target.value)}
-              disabled={isRecoverySubmitting}
-              autoFocus
-            />
-            <button
-              type="submit"
-              className={submitButton}
-              disabled={isRecoverySubmitting || !recoveryCode}
-            >
-              {isRecoverySubmitting ? "Verifying…" : "Verify"}
-            </button>
-            <button
-              type="button"
-              className={backLink}
-              onClick={() => setMode({ type: "recovery", step: "email" })}
-            >
-              ← Use a different email
-            </button>
-          </form>
-        </div>
-      )}
-
-      {mode.type === "recovery" && mode.step === "success" && (
-        <div className={card}>
-          <h2 className={title}>Success</h2>
-          <p className={subtitle}>
-            Your password has been reset. You can now sign in with your new
-            password.
-          </p>
-          <button
-            type="button"
-            className={submitButton}
-            onClick={switchToLogin}
-          >
-            Sign in
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -638,40 +433,6 @@ const formStack = css({
   gap: "16px",
 });
 
-const codeInput = css({
-  width: "100%",
-  padding: "12px 16px",
-  borderRadius: "md",
-  border: "1px solid",
-  borderColor: "border.default",
-  backgroundColor: "bg.card",
-  color: "text.primary",
-  fontSize: "16px",
-  fontFamily: "body",
-  outline: "none",
-  _focus: {
-    borderColor: "accent",
-    ring: "2px",
-    ringColor: "accent",
-  },
-});
-
-const submitButton = css({
-  width: "100%",
-  padding: "12px 16px",
-  borderRadius: "md",
-  border: "none",
-  backgroundColor: "accent",
-  color: "white",
-  fontSize: "16px",
-  fontWeight: "button",
-  fontFamily: "body",
-  cursor: "pointer",
-  _hover: { backgroundColor: "sunbeam.flame" },
-  textAlign: "center",
-  _disabled: { opacity: 0.5, cursor: "not-allowed" },
-});
-
 const links = css({
   display: "flex",
   flexDirection: "column",
@@ -698,11 +459,6 @@ const textLink = css({
 
 const backLink = css({
   composes: textLink,
-});
-
-const fullWidth = css({
-  width: "100%",
-  justifyContent: "center",
 });
 
 const mfaWrapper = css({

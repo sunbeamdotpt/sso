@@ -10,6 +10,7 @@ import { OAuthLoginPage } from "./pages/oauth-login-page.tsx";
 import { PostLogoutPage } from "./pages/post-logout-page.tsx";
 import { ErrorPage } from "./pages/error-page.tsx";
 import { DevicePage } from "./pages/device-page.tsx";
+import { RecoveryPage } from "./pages/recovery-page.tsx";
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   // Keep the login page renderable even if already authenticated;
@@ -61,6 +62,16 @@ const deviceRoute = createRoute({
   component: DevicePage,
 });
 
+const recoveryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/recovery",
+  component: () => (
+    <PublicRoute>
+      <RecoveryPage />
+    </PublicRoute>
+  ),
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   consentRoute,
@@ -68,6 +79,7 @@ const routeTree = rootRoute.addChildren([
   oauthLoggedOutRoute,
   errorRoute,
   deviceRoute,
+  recoveryRoute,
 ]);
 
 export const router = createRouter({

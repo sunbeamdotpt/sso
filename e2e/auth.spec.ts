@@ -67,21 +67,23 @@ test.describe("Auth Flows", () => {
     await expect(page.getByRole("heading", { name: "Sign In" })).toBeVisible();
   });
 
-  test("account recovery flow on login page", async ({ page }) => {
+  test("account recovery flow on dedicated recovery page", async ({ page }) => {
     const email = `recovery-${Date.now()}@sunbeam.pt`;
     const password = "xK9#mQ2$pL7@vN4&wR1!";
     await createAuthenticatedIdentity(email, password);
     await sqliteDelay();
 
     await page.goto("/login");
-    await page.getByRole("button", { name: /Forgot password/i }).click();
+    await page.getByRole("link", { name: /Forgot your password/i }).click();
 
-    await expect(page.getByRole("heading", { name: "Forgot Password" }))
+    await expect(page).toHaveURL("/recovery");
+    await expect(page.getByRole("heading", { name: "Reset your password" }))
       .toBeVisible();
     await page.getByLabel(/Email/i).fill(email);
-    await page.getByRole("button", { name: /Send Reset Code/i }).click();
+    await page.getByRole("button", { name: /Send Recovery Code/i }).click();
 
-    await expect(page.getByRole("heading", { name: "Enter Recovery Code" }))
-      .toBeVisible();
+    await expect(page.getByText(/Enter the recovery code/i)).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });
