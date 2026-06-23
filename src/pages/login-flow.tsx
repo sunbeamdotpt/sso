@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
@@ -138,17 +138,9 @@ export function LoginFlowPage() {
     api,
     flowId
       ? `/self-service/login/flows?id=${flowId}`
-      : "/self-service/login/flows",
-    { queryKey: flowId ? ["login-flow", flowId] : ["login-flow"], enabled: !!flowId },
+      : "/self-service/login/browser",
+    { queryKey: flowId ? ["login-flow", flowId] : ["login-flow"] },
   );
-
-  // Browser flows must be started by redirecting to Kratos so it can set the
-  // anti-CSRF cookie before the SPA submits the form.
-  useEffect(() => {
-    if (!flowId && typeof window !== "undefined") {
-      window.location.href = "/api/self-service/login/browser";
-    }
-  }, [flowId]);
 
   const currentLoginFlow = loginFlow ?? loginQuery.data ?? null;
   const availableMethods = currentLoginFlow
