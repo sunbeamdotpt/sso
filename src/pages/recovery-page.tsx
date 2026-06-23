@@ -34,22 +34,15 @@ export function RecoveryPage() {
 
   const recoveryQuery = useRestQuery<RecoveryFlow>(
     api,
-    flowId ? `/self-service/recovery/flows?id=${flowId}` : "/self-service/recovery/flows",
-    { queryKey: flowId ? ["recovery-flow", flowId] : ["recovery-flow"], enabled: !!flowId },
+    flowId
+      ? `/self-service/recovery/flows?id=${flowId}`
+      : "/self-service/recovery/browser",
+    { queryKey: flowId ? ["recovery-flow", flowId] : ["recovery-flow"] },
   );
 
   const currentFlow = recoveryFlow ?? recoveryQuery.data ?? null;
   const flowError = currentFlow ? getFlowError(currentFlow.ui) : undefined;
   const isSubmitting = step === "submitting";
-
-  // Browser flows must be started by redirecting to Kratos so it can set the
-  // anti-CSRF cookie before the SPA submits the form.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!flowId && !search.token) {
-      window.location.href = "/api/self-service/recovery/browser";
-    }
-  }, [flowId, search.token]);
 
   // If a recovery link brought the user here with a token, submit it immediately
   // so Kratos advances to the password-reset step.
