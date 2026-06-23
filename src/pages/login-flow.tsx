@@ -14,6 +14,11 @@ import { setUserSession } from "../providers/auth.tsx";
 import { getAvailableMfaMethods, needsMfa, submitFlow } from "../api/flows.ts";
 import { storeRememberMePreference } from "../utils/remember-me.ts";
 import { getSafeReturnUrl } from "../utils/redirect.ts";
+import {
+  clearRedirectHistory,
+  detectRedirectLoop,
+} from "../utils/redirect-guard.ts";
+import { getLoginBrowserUrl } from "../utils/kratos-urls.ts";
 import { MarkGithubIcon } from "@primer/octicons-react";
 import type { LoginFlow } from "../api/types.ts";
 
@@ -102,14 +107,6 @@ function isRegistrationDisabled(): boolean {
   return import.meta.env.VITE_REGISTRATION_DISABLED === "true";
 }
 
-function getLoginBrowserUrl(returnTo?: string, refresh?: boolean): string {
-  const params = new URLSearchParams();
-  if (refresh) params.set("refresh", "true");
-  if (returnTo) params.set("return_to", returnTo);
-  const query = params.toString();
-  return `/api/self-service/login/browser${query ? `?${query}` : ""}`;
-}
-
 export function LoginFlowPage() {
   const search = useSearch({ from: "/login" }) as {
     flow?: string;
@@ -127,6 +124,7 @@ export function LoginFlowPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [redirectError, setRedirectError] = useState<string | null>(null);
   const [toast, setToast] = useState<
     { message: string; variant: "success" | "error" | "info"; visible: boolean }
   >({
@@ -146,7 +144,7 @@ export function LoginFlowPage() {
     setToast((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  const { isAuthenticated, status } = useAuth();
+  const { status } = useAuth();
 
   const loginQuery = useRestQuery<LoginFlow>(
     api,
@@ -156,16 +154,31 @@ export function LoginFlowPage() {
     { queryKey: flowId ? ["login-flow", flowId] : ["login-flow"], enabled: !!flowId },
   );
 
+  // A successfully loaded flow means we are no longer in the redirect loop;
+  // clear the guard so later redirects are not falsely flagged.
+  useEffect(() => {
+    if (flowId && typeof window !== "undefined") {
+      clearRedirectHistory();
+    }
+  }, [flowId]);
+
   // Browser flows must be started by redirecting to Kratos so it can set the
-  // anti-CSRF cookie before the SPA submits the form. Use refresh=true when the
-  // user already has a session so Kratos doesn't bounce them away. Preserve
-  // return_to so protected routes can send the user back after login.
+  // anti-CSRF cookie before the SPA submits the form. Always use refresh=true
+  // so Kratos creates a flow even when a session exists, preventing bounce
+  // loops caused by the default return URL. Preserve return_to so protected
+  // routes can send the user back after authentication.
   useEffect(() => {
     if (flowId || typeof window === "undefined" || status === "initializing") {
       return;
     }
-    window.location.href = getLoginBrowserUrl(returnTo, isAuthenticated);
-  }, [flowId, isAuthenticated, status, returnTo]);
+    const target = getLoginBrowserUrl(returnTo);
+    const loop = detectRedirectLoop(target);
+    if (loop) {
+      setRedirectError(loop);
+      return;
+    }
+    globalThis.location.href = target;
+  }, [flowId, status, returnTo]);
 
   const currentLoginFlow = loginFlow ?? loginQuery.data ?? null;
   const availableMethods = currentLoginFlow
@@ -302,7 +315,14 @@ export function LoginFlowPage() {
         <p className={errorText}>{loginQuery.error.message}</p>
       )}
 
-      {!flowId && status !== "initializing" && !currentLoginFlow && (
+      {redirectError && (
+        <Callout variant="warning">
+          {redirectError} Try reloading the page or contact support if the
+          problem persists.
+        </Callout>
+      )}
+
+      {!redirectError && !flowId && status !== "initializing" && !currentLoginFlow && (
         <p className={statusText}>Redirecting…</p>
       )}
 

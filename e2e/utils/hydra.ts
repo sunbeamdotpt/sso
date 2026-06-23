@@ -2,8 +2,10 @@
  * Hydra admin/public API helpers for E2E device-authorization tests.
  */
 
-const HYDRA_ADMIN_BASE = "http://localhost:4445";
-const HYDRA_PUBLIC_BASE = "http://localhost:4444";
+const HYDRA_ADMIN_BASE = Deno.env.get("HYDRA_ADMIN_URL") ??
+  "http://localhost:4445";
+const HYDRA_PUBLIC_BASE = Deno.env.get("HYDRA_PUBLIC_URL") ??
+  "http://localhost:4444";
 
 export interface HydraClient {
   client_id: string;

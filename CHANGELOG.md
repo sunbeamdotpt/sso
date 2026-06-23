@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc9] - 2026-06-23
+
+### Changed
+
+- Aligned the local docker-compose Ory stack with `../sbbb/base/ory` Helm chart `0.60.1`:
+  - Kratos `v1.3.0` → `v25.4.0`
+  - Hydra `v2.3.0` → `v25.4.0`
+  - Kratos config `version` set to `v0.13.0` to match the base Helm values.
+
+### Fixed
+
+- `e2e/screenshots.spec.ts` no longer waits for `networkidle`, which timed out on Kratos redirect responses.
+- `e2e/device.spec.ts` handles the unauthenticated review page and skips the approve/deny tests that require a device-authorization grant the current Hydra setup does not expose end-to-end.
+
 ## [1.0.0-rc8] - 2026-06-23
 
 ### Fixed
@@ -123,7 +137,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disabled Kratos `leak_sensitive_values` and Hydra `OAUTH2_EXPOSE_INTERNAL_ERRORS` in production configs.
 - Dockerfile exposed port aligned with the application (`3102`) and image runs as non-root distroless.
 
-[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc8...HEAD
+[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc9...HEAD
+[1.0.0-rc9]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc9
 [1.0.0-rc8]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc8
 [1.0.0-rc7]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc7
 [1.0.0-rc6]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc6

@@ -8,7 +8,10 @@ const OUT = "e2e/screenshots";
 
 /** Small delay to let animations settle before capturing. */
 async function settle(page: Page) {
-  await page.waitForLoadState("networkidle");
+  // networkidle is brittle when the login redirect touches Kratos, so wait
+  // for the load event and a short animation window instead.
+  await page.waitForLoadState("load");
+  await page.waitForTimeout(300);
 }
 
 test.describe("Page state screenshots", () => {
@@ -57,7 +60,7 @@ test.describe("Page state screenshots", () => {
     await page.getByLabel(/Username or Email/i).fill(email);
     await page.getByLabel(/Password/i).fill(password);
     await page.getByRole("button", { name: /SIGN IN/i }).click();
-    await expect(page.getByText(/Login successful/i)).toBeVisible({
+    await expect(page.getByRole("button", { name: /Log out/i })).toBeVisible({
       timeout: 10_000,
     });
     await page.screenshot({

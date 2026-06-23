@@ -73,6 +73,26 @@ cargo build --release
 ./target/release/sso
 ```
 
+## Auth Redirect Invariants
+
+The SSO portal redirects to Kratos browser flows. The following must stay true;
+violating any of them is the most common way to create an infinite redirect
+loop:
+
+1. **`/login` must always redirect to `/api/self-service/login/browser?refresh=true`.**
+   The `refresh=true` parameter forces Kratos to create a new flow even when a
+   session already exists. Without it, Kratos bounces an authenticated user to
+   `default_browser_return_url`, which can ping-pong back to `/login` forever.
+
+2. **Kratos `default_browser_return_url` must not be `/login`.**
+   It should be `/` (or another path that does not itself redirect to Kratos).
+   This is configured in `sbbb/base/ory/kratos-selfservice-urls.yaml`.
+
+3. **Client-side redirect guard.**
+   `src/utils/redirect-guard.ts` records outbound SPA redirects. If the same
+   page redirects to the same Kratos endpoint twice in a row, the SPA renders a
+   fatal error instead of looping.
+
 ## Semantic Memory Search (Optional)
 
 If a `sunbeam-memory` MCP server is available in your environment, use it for codebase search instead of `grep` or `rg`.

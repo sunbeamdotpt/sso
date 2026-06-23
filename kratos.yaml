@@ -1,4 +1,4 @@
-version: v1.3.0
+version: v0.13.0
 
 dsn: ${DSN:-postgres://sunbeam:sunbeam@postgres:5432/kratos?sslmode=disable}
 
@@ -98,7 +98,7 @@ log:
 
 courier:
   smtp:
-    connection_uri: ${SMTP_CONNECTION_URI:-smtps://test:test@stalwart:1025/?skip_ssl_verify=true&legacy_ssl=true}
+    connection_uri: ${COURIER_SMTP_CONNECTION_URI:-smtps://test:test@stalwart:1025/?skip_ssl_verify=true&legacy_ssl=true}
 
 identity:
   default_schema_id: default

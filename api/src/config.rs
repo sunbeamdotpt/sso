@@ -61,6 +61,10 @@ impl Config {
 pub fn http_client() -> Result<reqwest::Client> {
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
+        // Never follow redirects automatically. The browser must receive
+        // Kratos/Hydra redirects (e.g. flow creation 303s) so it can navigate
+        // to the SPA routes correctly.
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .context("build HTTP client")
 }

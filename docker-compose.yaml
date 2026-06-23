@@ -34,7 +34,7 @@ services:
     restart: no
 
   kratos-migrate:
-    image: oryd/kratos:v1.3.0
+    image: oryd/kratos:v25.4.0
     depends_on:
       ory-db-init:
         condition: service_completed_successfully
@@ -48,7 +48,7 @@ services:
     restart: no
 
   kratos:
-    image: oryd/kratos:v1.3.0
+    image: oryd/kratos:v25.4.0
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully
@@ -70,7 +70,7 @@ services:
       retries: 30
 
   hydra-migrate:
-    image: oryd/hydra:v2.3.0
+    image: oryd/hydra:v25.4.0
     depends_on:
       ory-db-init:
         condition: service_completed_successfully
@@ -81,7 +81,7 @@ services:
     restart: no
 
   hydra:
-    image: oryd/hydra:v2.3.0
+    image: oryd/hydra:v25.4.0
     depends_on:
       hydra-migrate:
         condition: service_completed_successfully

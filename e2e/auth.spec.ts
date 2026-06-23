@@ -32,10 +32,11 @@ test.describe("Auth Flows", () => {
     await page.getByLabel(/Password/i).fill(password);
     await page.getByRole("button", { name: /SIGN IN/i }).click();
 
-    await expect(page.getByText(/Login successful/i)).toBeVisible({
+    // The toast auto-dismisses quickly, so assert the persistent session state
+    // (Log out button in the header) rather than the transient toast text.
+    await expect(page.getByRole("button", { name: /Log out/i })).toBeVisible({
       timeout: 10_000,
     });
-    await expect(page.getByRole("button", { name: /Log out/i })).toBeVisible();
   });
 
   test("login with invalid credentials shows error", async ({ page }) => {
@@ -60,7 +61,9 @@ test.describe("Auth Flows", () => {
     await page.getByLabel(/Username or Email/i).fill(email);
     await page.getByLabel(/Password/i).fill(password);
     await page.getByRole("button", { name: /SIGN IN/i }).click();
-    await expect(page.getByText(/Login successful/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Log out/i })).toBeVisible({
+      timeout: 10_000,
+    });
 
     await page.getByRole("button", { name: /Log out/i }).click();
 
@@ -85,5 +88,27 @@ test.describe("Auth Flows", () => {
     await expect(page.getByText(/Enter the recovery code/i)).toBeVisible({
       timeout: 10_000,
     });
+  });
+
+  test("authenticated visit to /login does not loop", async ({ page }) => {
+    const email = `auth-redirect-${Date.now()}@sunbeam.pt`;
+    const password = "xK9#mQ2$pL7@vN4&wR1!";
+    await createAuthenticatedIdentity(email, password);
+    await sqliteDelay();
+
+    // Sign in first.
+    await page.goto("/login");
+    await page.getByLabel(/Username or Email/i).fill(email);
+    await page.getByLabel(/Password/i).fill(password);
+    await page.getByRole("button", { name: /SIGN IN/i }).click();
+    await expect(page.getByRole("button", { name: /Log out/i })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Visiting /login again with an active session must create a flow and
+    // render it, not bounce to /api/self-service/login/browser forever.
+    await page.goto("/login");
+    await expect(page).toHaveURL(/\/login\?flow=.+/);
+    await expect(page.getByRole("heading", { name: "Sign In" })).toBeVisible();
   });
 });

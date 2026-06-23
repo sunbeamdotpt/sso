@@ -5,6 +5,8 @@ const OUT = "e2e/screenshots";
 const LOGIN_CHALLENGE = "12345678-1234-1234-1234-123456789abc";
 const LOGOUT_CHALLENGE = "12345678-1234-1234-1234-123456789abd";
 const CONSENT_CHALLENGE = "12345678-1234-1234-1234-123456789abe";
+const LOGIN_FLOW_ID = "login-flow-screenshot";
+const RECOVERY_FLOW_ID = "recovery-flow-screenshot";
 
 function apiResponse(body: unknown, status = 200) {
   return {
@@ -84,7 +86,7 @@ function buildLoginFlow(flowId: string, action: string) {
 }
 
 async function mockLoginFlow(page: Page) {
-  const flowId = "login-flow-screenshot";
+  const flowId = LOGIN_FLOW_ID;
   const action = mockFlowAction("/self-service/login", flowId);
 
   await page.route(/\/api\/self-service\/login(\?.*)?$/, async (route) => {
@@ -195,12 +197,9 @@ async function mockLoginFlow(page: Page) {
     await route.fulfill(apiResponse(buildLoginFlow(flowId, action)));
   });
 
-  await page.route(/\/api\/self-service\/login\/browser(\?.*)?$/, async (route) => {
-    await route.fulfill({
-      status: 303,
-      headers: { Location: `/login?flow=${flowId}` },
-    });
-  });
+  // WebKit does not allow route.fulfill with a 3xx redirect, so tests must
+  // navigate directly to /login?flow=LOGIN_FLOW_ID instead of relying on this
+  // redirect being mocked.
 }
 
 function buildRecoveryFlow(flowId: string, action: string) {
@@ -234,7 +233,7 @@ function buildRecoveryFlow(flowId: string, action: string) {
 }
 
 async function mockRecoveryFlow(page: Page) {
-  const flowId = "recovery-flow-screenshot";
+  const flowId = RECOVERY_FLOW_ID;
   const action = mockFlowAction("/self-service/recovery", flowId);
 
   await page.route(/\/api\/self-service\/recovery(\?.*)?$/, async (route) => {
@@ -301,12 +300,8 @@ async function mockRecoveryFlow(page: Page) {
     await route.fulfill(apiResponse(buildRecoveryFlow(flowId, action)));
   });
 
-  await page.route(/\/api\/self-service\/recovery\/browser(\?.*)?$/, async (route) => {
-    await route.fulfill({
-      status: 303,
-      headers: { Location: `/recovery?flow=${flowId}` },
-    });
-  });
+  // WebKit does not allow route.fulfill with a 3xx redirect; tests navigate
+  // directly to /recovery?flow=RECOVERY_FLOW_ID.
 }
 
 async function mockHydraLogin(page: Page) {
@@ -383,7 +378,7 @@ test.describe("Mocked page state screenshots", () => {
   test("/login password form", async ({ page }) => {
     await mockAnonymousSession(page);
     await mockLoginFlow(page);
-    await page.goto("/login");
+    await page.goto(`/login?flow=${LOGIN_FLOW_ID}`);
     await settle(page);
     await expect(page.getByRole("heading", { name: "Sign In" })).toBeVisible();
     await page.screenshot({
@@ -395,7 +390,7 @@ test.describe("Mocked page state screenshots", () => {
   test("/login error state", async ({ page }) => {
     await mockAnonymousSession(page);
     await mockLoginFlow(page);
-    await page.goto("/login");
+    await page.goto(`/login?flow=${LOGIN_FLOW_ID}`);
     await page.getByLabel(/Username or Email/i).fill("error@sunbeam.pt");
     await page.getByLabel(/Password/i).fill("wrong");
     await page.getByRole("button", { name: /SIGN IN/i }).click();
@@ -407,7 +402,7 @@ test.describe("Mocked page state screenshots", () => {
   test("/login MFA state", async ({ page }) => {
     await mockAnonymousSession(page);
     await mockLoginFlow(page);
-    await page.goto("/login");
+    await page.goto(`/login?flow=${LOGIN_FLOW_ID}`);
     await page.getByLabel(/Username or Email/i).fill("mfa@sunbeam.pt");
     await page.getByLabel(/Password/i).fill("password");
     await page.getByRole("button", { name: /SIGN IN/i }).click();
@@ -426,11 +421,11 @@ test.describe("Mocked page state screenshots", () => {
       }));
     });
     await mockLoginFlow(page);
-    await page.goto("/login");
+    await page.goto(`/login?flow=${LOGIN_FLOW_ID}`);
     await page.getByLabel(/Username or Email/i).fill("user@sunbeam.pt");
     await page.getByLabel(/Password/i).fill("password");
     await page.getByRole("button", { name: /SIGN IN/i }).click();
-    await expect(page.getByText(/Login successful/i)).toBeVisible({
+    await expect(page.getByRole("button", { name: /Log out/i })).toBeVisible({
       timeout: 10_000,
     });
     await page.screenshot({
@@ -442,7 +437,7 @@ test.describe("Mocked page state screenshots", () => {
   test("/recovery states", async ({ page }) => {
     await mockAnonymousSession(page);
     await mockRecoveryFlow(page);
-    await page.goto("/recovery");
+    await page.goto(`/recovery?flow=${RECOVERY_FLOW_ID}`);
     await expect(page.getByRole("heading", { name: "Reset your password" }))
       .toBeVisible();
     await page.screenshot({
@@ -518,7 +513,7 @@ test.describe("Mocked page state screenshots", () => {
       await route.continue();
     });
 
-    await page.goto("/recovery");
+    await page.goto(`/recovery?flow=${RECOVERY_FLOW_ID}`);
     await page.getByLabel(/Email/i).fill("unknown@sunbeam.pt");
     await page.getByRole("button", { name: /Send Recovery Code/i }).click();
     await expect(page.getByRole("alert")).toContainText(
@@ -534,7 +529,7 @@ test.describe("Mocked page state screenshots", () => {
   test("/login social sign-in buttons", async ({ page }) => {
     await mockAnonymousSession(page);
     await mockLoginFlow(page);
-    await page.goto("/login");
+    await page.goto(`/login?flow=${LOGIN_FLOW_ID}`);
     await settle(page);
     await expect(
       page.getByRole("button", { name: /Discord/i }),

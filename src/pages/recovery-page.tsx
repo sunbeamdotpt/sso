@@ -6,6 +6,11 @@ import { Button, Callout, Spinner, TextInput } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
 import { submitFlow } from "../api/flows.ts";
 import { getFlowError } from "../api/types.ts";
+import {
+  clearRedirectHistory,
+  detectRedirectLoop,
+} from "../utils/redirect-guard.ts";
+import { getRecoveryBrowserUrl } from "../utils/kratos-urls.ts";
 import type { RecoveryFlow } from "../api/types.ts";
 
 type RecoveryStep = "email" | "code" | "password" | "submitting" | "success";
@@ -31,6 +36,7 @@ export function RecoveryPage() {
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [redirectError, setRedirectError] = useState<string | null>(null);
 
   const { isAuthenticated, status } = useAuth();
 
@@ -42,6 +48,14 @@ export function RecoveryPage() {
     { queryKey: flowId ? ["recovery-flow", flowId] : ["recovery-flow"], enabled: !!flowId },
   );
 
+  // A successfully loaded flow or recovery link means we are no longer in the
+  // redirect loop; clear the guard so later redirects are not falsely flagged.
+  useEffect(() => {
+    if ((flowId || search.token) && typeof window !== "undefined") {
+      clearRedirectHistory();
+    }
+  }, [flowId, search.token]);
+
   // Browser flows must be started by redirecting to Kratos so it can set the
   // anti-CSRF cookie before the SPA submits the form. Skip the redirect when
   // the user is already authenticated or arrived via a recovery link.
@@ -49,7 +63,13 @@ export function RecoveryPage() {
     if (typeof window === "undefined") return;
     if (status === "initializing") return;
     if (!flowId && !search.token && !isAuthenticated) {
-      window.location.href = "/api/self-service/recovery/browser";
+      const target = getRecoveryBrowserUrl();
+      const loop = detectRedirectLoop(target);
+      if (loop) {
+        setRedirectError(loop);
+        return;
+      }
+      globalThis.location.href = target;
     }
   }, [flowId, search.token, isAuthenticated, status]);
 
@@ -241,6 +261,20 @@ export function RecoveryPage() {
           <div className={css({ display: "flex", justifyContent: "center", padding: "32px" })}>
             <Spinner size="md" />
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (redirectError) {
+    return (
+      <div className={wrapper}>
+        <div className={card}>
+          <h1 className={title}>Reset your password</h1>
+          <Callout variant="warning">
+            {redirectError} Try reloading the page or contact support if the
+            problem persists.
+          </Callout>
         </div>
       </div>
     );

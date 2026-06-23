@@ -4,7 +4,7 @@
  * All operations hit the admin port (4434) which is unrestricted.
  */
 
-const ADMIN_BASE = "http://localhost:4434";
+const ADMIN_BASE = "http://localhost:4434/admin";
 
 export interface Identity {
   id: string;
@@ -78,7 +78,9 @@ export async function createAuthenticatedIdentity(
 ): Promise<{ identity: Identity; sessionToken: string }> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      // 1. Create identity with password via admin API
+      // 1. Create identity with password and a verified email via admin API.
+      //    Including verifiable_addresses here avoids a PATCH that triggers a
+      //    flaky DNS lookup in the local Docker stack.
       const identityRes = await adminFetch("/identities", {
         method: "POST",
         body: JSON.stringify({
@@ -90,30 +92,19 @@ export async function createAuthenticatedIdentity(
               config: { password },
             },
           },
+          verifiable_addresses: [
+            {
+              value: email,
+              verified: true,
+              status: "completed",
+              via: "email",
+            },
+          ],
         }),
       });
-      const identity = await identityRes.json() as Identity & {
-        verifiable_addresses?: Array<{ id: string }>;
-      };
+      const identity = await identityRes.json() as Identity;
 
-      // 2. Verify email address so login hook doesn't block
-      await adminFetch(`/identities/${identity.id}`, {
-        method: "PATCH",
-        body: JSON.stringify([
-          {
-            op: "replace",
-            path: "/verifiable_addresses/0/verified",
-            value: true,
-          },
-          {
-            op: "replace",
-            path: "/verifiable_addresses/0/status",
-            value: "completed",
-          },
-        ]),
-      });
-
-      // 3. Create login API flow
+      // 2. Create login API flow
       const flowRes = await fetch(
         "http://localhost:4433/self-service/login/api",
         { headers: { Accept: "application/json" } },
@@ -125,8 +116,13 @@ export async function createAuthenticatedIdentity(
         };
       };
 
-      // 4. Submit login
-      const submitRes = await fetch(flow.ui.action, {
+      // 4. Submit login directly to the Kratos public API. The flow action
+      //    uses the configured public base URL (localhost:5175) which isn't
+      //    running during e2e, so we replace the origin with localhost:4433.
+      const flowId = flowRes.headers.get("X-Flow-Id") ??
+        new URL(flow.ui.action).searchParams.get("flow") ?? "";
+      const submitUrl = `http://localhost:4433/self-service/login?flow=${flowId}`;
+      const submitRes = await fetch(submitUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
