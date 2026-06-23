@@ -5,7 +5,6 @@ import { css } from "styled-system/css";
 import {
   Button,
   Callout,
-  LoginForm,
   TextInput,
   Toast,
   TwoFactorForm,
@@ -40,6 +39,24 @@ function getKratosError(
   return undefined;
 }
 
+function getMaterialIcon(providerId: string): string {
+  switch (providerId.toLowerCase()) {
+    case "discord":
+      return "chat";
+    case "github":
+      return "code";
+    case "google":
+      return "account_circle";
+    case "microsoft":
+    case "azuread":
+      return "account_circle";
+    case "apple":
+      return "phone_iphone";
+    default:
+      return "login";
+  }
+}
+
 function getOAuthProviders(
   flow: LoginFlow | null,
 ): Array<{ name: string; icon: string; onClick: () => void }> {
@@ -48,13 +65,17 @@ function getOAuthProviders(
     .filter((n) => n.group === "oidc" && n.attributes.name === "provider")
     .map((n) => ({
       name: n.meta?.label?.text ?? String(n.attributes.value),
-      icon: String(n.attributes.value),
+      icon: getMaterialIcon(String(n.attributes.value)),
       onClick: () => {
         submitFlow(flow as LoginFlow & { ui: NonNullable<LoginFlow["ui"]> }, {
           provider: n.attributes.value,
         }, "oidc");
       },
     }));
+}
+
+function isRegistrationDisabled(): boolean {
+  return import.meta.env.VITE_REGISTRATION_DISABLED === "true";
 }
 
 export function LoginFlowPage() {
@@ -68,6 +89,9 @@ export function LoginFlowPage() {
   const [loginFlow, setLoginFlow] = useState<LoginFlow | null>(null);
   const [recoveryFlow, setRecoveryFlow] = useState<RecoveryFlow | null>(null);
   const [selectedMfaMethod, setSelectedMfaMethod] = useState<string>("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
   const [toast, setToast] = useState<
@@ -121,11 +145,8 @@ export function LoginFlowPage() {
   const isRecoverySubmitting = mode.type === "recovery" &&
     mode.step === "submitting";
 
-  const handleLoginSubmit = async (
-    _username: string,
-    password: string,
-    _remember: boolean,
-  ) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!currentLoginFlow?.ui?.action) return;
 
     setMode({ type: "login", step: "submitting" });
@@ -133,12 +154,12 @@ export function LoginFlowPage() {
 
     const result = await submitFlow(
       currentLoginFlow as LoginFlow & { ui: NonNullable<LoginFlow["ui"]> },
-      { identifier: _username, password, remember: _remember },
+      { identifier: email, password, remember: rememberMe },
       "password",
     );
 
     if (result.success && result.session) {
-      storeRememberMePreference(_remember);
+      storeRememberMePreference(rememberMe);
       setUserSession(
         result.session.identity as import("../api/types.ts").Identity,
         result.session.authenticator_assurance_level,
@@ -352,25 +373,87 @@ export function LoginFlowPage() {
 
       {mode.type === "login" && currentLoginFlow && mode.step === "password" &&
         (
-          <>
-            <LoginForm
-              onSubmit={handleLoginSubmit}
-              oauthProviders={oauthProviders.length > 0
-                ? oauthProviders
-                : undefined}
-              error={loginError}
-              loading={isLoginSubmitting}
-            />
+          <div className={card}>
+            <h1 className={title}>Sign In</h1>
+            {loginError && <Callout variant="warning">{loginError}</Callout>}
+
+            <form onSubmit={handleLoginSubmit} className={formStack}>
+              <TextInput
+                label="Username or Email"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                placeholder="you@example.com"
+                disabled={isLoginSubmitting}
+              />
+              <TextInput
+                label="Password"
+                type="password"
+                value={password}
+                onChange={setPassword}
+                placeholder="Enter password"
+                disabled={isLoginSubmitting}
+              />
+              <label className={checkboxRow}>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={isLoginSubmitting}
+                />
+                <span>Remember me</span>
+              </label>
+              <Button
+                variant="primary"
+                type="submit"
+                className={narrowButton}
+                disabled={isLoginSubmitting || !email || !password}
+              >
+                {isLoginSubmitting ? "Signing in…" : "SIGN IN"}
+              </Button>
+            </form>
+
+            {oauthProviders.length > 0 && (
+              <>
+                <div className={divider}>
+                  <span>OR</span>
+                </div>
+                <div className={oauthStack}>
+                  {oauthProviders.map((provider) => (
+                    <Button
+                      key={provider.name}
+                      variant="ghost"
+                      type="button"
+                      className={narrowButton}
+                      onClick={provider.onClick}
+                      disabled={isLoginSubmitting}
+                    >
+                      <span className={oauthIcon}>{provider.icon}</span>
+                      Sign in with {provider.name}
+                    </Button>
+                  ))}
+                </div>
+              </>
+            )}
+
             <div className={links}>
+              {!isRegistrationDisabled() && (
+                <span className={footerText}>
+                  Don&apos;t have an account?{" "}
+                  <a href="/registration" className={textLink}>
+                    Sign up
+                  </a>
+                </span>
+              )}
               <button
                 type="button"
                 className={textLink}
                 onClick={switchToRecovery}
               >
-                Forgot password?
+                Forgot your password?
               </button>
             </div>
-          </>
+          </div>
         )}
 
       {mode.type === "login" && currentLoginFlow && mode.step === "mfa" && (
@@ -658,4 +741,66 @@ const methodButtonSelected = css({
   color: "text.primary",
   fontSize: "sm",
   cursor: "pointer",
+});
+
+const checkboxRow = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  fontSize: "sm",
+  color: "text.primary",
+  cursor: "pointer",
+  "& input": {
+    width: "16px",
+    height: "16px",
+    accentColor: "accent",
+    cursor: "pointer",
+  },
+});
+
+const narrowButton = css({
+  width: "70%",
+  alignSelf: "center",
+  justifyContent: "center",
+});
+
+const divider = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  color: "text.muted",
+  fontSize: "xs",
+  fontWeight: "semibold",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  width: "70%",
+  alignSelf: "center",
+  "&::before, &::after": {
+    content: '""',
+    flex: 1,
+    height: "1px",
+    backgroundColor: "border.subtle",
+  },
+});
+
+const oauthStack = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "12px",
+  width: "100%",
+  alignItems: "center",
+});
+
+const oauthIcon = css({
+  fontFamily: "'Material Symbols Outlined', sans-serif",
+  fontSize: "18px",
+  lineHeight: 1,
+  fontVariationSettings: "'wght' 400",
+});
+
+const footerText = css({
+  fontSize: "13px",
+  fontFamily: "body",
+  color: "text.secondary",
+  textAlign: "center",
 });

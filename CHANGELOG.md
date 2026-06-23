@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc3] - 2026-06-23
+
+### Added
+
+- Device authorization verification page at `/device` for OAuth2 Device Code flow (RFC 8628).
+- Rust backend proxy for Hydra public OAuth2 endpoints under `/api/oauth2/device/*`.
+- Playwright integration tests for device authorization using the real docker-compose Hydra stack.
+- `VITE_REGISTRATION_DISABLED` build-time flag to hide the "Sign up" link on the login page.
+
+### Changed
+
+- Replaced the `LoginForm` component from `@sunbeam/beam-ui` with a custom login form for full layout control.
+- All login-page buttons (sign-in and social) now share the same width (70% of the card) and button component.
+- Social sign-in buttons now render Material Symbols icons instead of plain provider names.
+- Removed the duplicate "Forgot password?" link that appeared outside the login card.
+- Vite dev proxy now forwards `/api` to the Rust backend (port 3102) so dev behavior matches production.
+- Playwright E2E tests now run against the embedded SPA served by the Rust backend.
+
 ## [1.0.0-rc2] - 2026-06-22
 
 ### Changed
@@ -53,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disabled Kratos `leak_sensitive_values` and Hydra `OAUTH2_EXPOSE_INTERNAL_ERRORS` in production configs.
 - Dockerfile exposed port aligned with the application (`3102`) and image runs as non-root distroless.
 
-[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc2...HEAD
+[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc3...HEAD
+[1.0.0-rc3]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc3
 [1.0.0-rc2]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc2
 [1.0.0-rc0]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc0
