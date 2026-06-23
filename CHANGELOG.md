@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc5] - 2026-06-23
+
+### Added
+
+- GDPR-compliant access logging in the Rust backend: logs method, path (query string stripped), status and latency; excludes IPs, user agents, cookies, tokens and query parameters.
+- Custom error callout on the `/recovery` page with a red border and "ERROR" label.
+- Playwright mocked tests for `/recovery` states, `/recovery` error state and `/login` social sign-in buttons.
+
+### Changed
+
+- Social sign-in buttons are now orange primary buttons, use Material Symbols icons and show only the provider name, fixing duplicated/wrapped text.
+- CSP now allows Google Fonts stylesheets and the Google Fonts font origin so Material Symbols render in production.
+- Recovery page action buttons are now 70% width and centered, matching the login page.
+- Static file fallback now serves `index.html` with `text/html` MIME type instead of `application/octet-stream`, fixing direct navigation to SPA routes.
+
 ## [1.0.0-rc4] - 2026-06-23
 
 ### Added
@@ -84,7 +99,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disabled Kratos `leak_sensitive_values` and Hydra `OAUTH2_EXPOSE_INTERNAL_ERRORS` in production configs.
 - Dockerfile exposed port aligned with the application (`3102`) and image runs as non-root distroless.
 
-[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc4...HEAD
+[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc5...HEAD
+[1.0.0-rc5]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc5
 [1.0.0-rc4]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc4
 [1.0.0-rc3]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc3
 [1.0.0-rc2]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc2
