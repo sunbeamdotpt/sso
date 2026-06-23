@@ -6,6 +6,7 @@
     "install": "deno install --allow-scripts",
     "prepare": "deno task install && deno run -A scripts/link-jsr.ts && deno run -A npm:@pandacss/dev@^1.9.1 codegen",
     "dev": "deno run -A npm:vite@^6.0.0",
+    "dev:server": "KRATOS_PUBLIC_URL=http://localhost:4433 KRATOS_ADMIN_URL=http://localhost:4434 HYDRA_ADMIN_URL=http://localhost:4445 HYDRA_PUBLIC_URL=http://localhost:4444 cargo run --manifest-path api/Cargo.toml",
     "build": "deno task prepare && deno run -A npm:vite@^6.0.0 build",
     "preview": "deno run -A npm:vite@^6.0.0 preview",
     "check": "deno check src/main.tsx",

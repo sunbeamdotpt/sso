@@ -1,3 +1,6 @@
+// Copyright Sunbeam Studios 2026
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! SSO portal server built on sunbeam-g2v.
 //!
 //! Serves the embedded Vite-built SPA on `/` and implements the small set of
@@ -6,6 +9,7 @@
 
 mod config;
 mod hydra;
+mod hydra_public;
 mod kratos;
 mod static_files;
 
@@ -25,6 +29,7 @@ use tracing::info;
 
 use config::Config;
 use hydra::hydra_routes;
+use hydra_public::hydra_public_routes;
 use kratos::kratos_routes;
 use static_files::static_handler;
 
@@ -83,7 +88,8 @@ async fn main() -> anyhow::Result<()> {
     // `/api/hydra/login` and `/api/self-service/login/browser`.
     let api_routes = AxumRouter::new()
         .merge(kratos_routes(Arc::clone(&shared_config)))
-        .merge(hydra_routes(Arc::clone(&shared_config)));
+        .merge(hydra_routes(Arc::clone(&shared_config)))
+        .merge(hydra_public_routes(Arc::clone(&shared_config)));
 
     let app = AxumRouter::new()
         .route("/health", get(health_handler))

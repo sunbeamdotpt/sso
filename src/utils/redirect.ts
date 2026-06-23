@@ -3,7 +3,10 @@
  * Rejects absolute URLs to untrusted hosts, protocol-relative URLs,
  * javascript: URLs, and data: URLs.
  */
-export function isSafeReturnUrl(url: string, trustedOrigins: string[] = []): boolean {
+export function isSafeReturnUrl(
+  url: string,
+  trustedOrigins: string[] = [],
+): boolean {
   if (!url) return false;
 
   // Reject known dangerous schemes immediately
@@ -36,7 +39,8 @@ export function getSafeReturnUrl(
   return isSafeReturnUrl(url, trustedOrigins) ? url : fallback;
 }
 
-const CHALLENGE_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+const CHALLENGE_PATTERN =
+  /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
 /**
  * Validate a Hydra/Kratos challenge identifier.

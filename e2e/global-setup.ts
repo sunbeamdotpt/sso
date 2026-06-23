@@ -1,5 +1,11 @@
 import type { FullConfig } from "@playwright/test";
-import { cleanupAllIdentities, createIdentity, createAuthenticatedIdentity, listIdentities, deleteIdentity } from "./utils/kratos.ts";
+import {
+  cleanupAllIdentities,
+  createAuthenticatedIdentity,
+  createIdentity,
+  deleteIdentity,
+  listIdentities,
+} from "./utils/kratos.ts";
 
 /**
  * Global setup: seed Kratos with deterministic test identities.

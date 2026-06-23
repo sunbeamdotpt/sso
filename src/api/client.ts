@@ -13,7 +13,10 @@ const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
  * string `"cookie"` means the session is managed by Kratos via
  * HTTP-only cookie and must not be sent as a header.
  */
-function kratosFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+function kratosFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
   const token = authSelectors.token();
   const opts: RequestInit = { ...init, credentials: "same-origin" };
   const headers = new Headers(init?.headers);

@@ -33,7 +33,11 @@ async function adminFetch(path: string, init?: RequestInit) {
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Kratos admin ${init?.method ?? "GET"} ${path} failed: ${res.status} ${body}`);
+    throw new Error(
+      `Kratos admin ${
+        init?.method ?? "GET"
+      } ${path} failed: ${res.status} ${body}`,
+    );
   }
   return res;
 }
@@ -96,8 +100,16 @@ export async function createAuthenticatedIdentity(
       await adminFetch(`/identities/${identity.id}`, {
         method: "PATCH",
         body: JSON.stringify([
-          { op: "replace", path: "/verifiable_addresses/0/verified", value: true },
-          { op: "replace", path: "/verifiable_addresses/0/status", value: "completed" },
+          {
+            op: "replace",
+            path: "/verifiable_addresses/0/verified",
+            value: true,
+          },
+          {
+            op: "replace",
+            path: "/verifiable_addresses/0/status",
+            value: "completed",
+          },
         ]),
       });
 
@@ -124,7 +136,9 @@ export async function createAuthenticatedIdentity(
           method: "password",
           password,
           identifier: email,
-          csrf_token: flow.ui.nodes.find((n) => n.attributes.name === "csrf_token")
+          csrf_token: flow.ui.nodes.find((n) =>
+            n.attributes.name === "csrf_token"
+          )
             ?.attributes?.value ?? "",
         }),
       });

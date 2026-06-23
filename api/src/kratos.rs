@@ -1,3 +1,6 @@
+// Copyright Sunbeam Studios 2026
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Kratos public API proxy and session helpers.
 
 use std::sync::Arc;

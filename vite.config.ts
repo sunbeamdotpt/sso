@@ -92,7 +92,9 @@ export default _stub;
       if (BEAM_UI_OPTIONAL_DEPS.has(id)) return PREFIX + id;
     },
     load(id) {
-      if (id.startsWith(PREFIX)) return { code: STUB_CODE, syntheticNamedExports: true };
+      if (id.startsWith(PREFIX)) {
+        return { code: STUB_CODE, syntheticNamedExports: true };
+      }
     },
   };
 }
@@ -109,7 +111,9 @@ function styledSystemResolver(): Plugin {
       // If the resolved path is a directory, point to its index module so
       // Vite doesn't try to open the directory as a file.
       try {
-        if (subpath && !subpath.includes(".") && statSync(resolved).isDirectory()) {
+        if (
+          subpath && !subpath.includes(".") && statSync(resolved).isDirectory()
+        ) {
           const indexPath = resolve(resolved, "index.mjs");
           if (statSync(indexPath).isFile()) return indexPath;
         }
@@ -120,7 +124,13 @@ function styledSystemResolver(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [npmAliasPlugin(), styledSystemResolver(), suppressUnusedDynamicImports(), stubBeamUiOptionalDeps(), react()],
+  plugins: [
+    npmAliasPlugin(),
+    styledSystemResolver(),
+    suppressUnusedDynamicImports(),
+    stubBeamUiOptionalDeps(),
+    react(),
+  ],
   resolve: {
     alias: {},
   },
@@ -133,15 +143,8 @@ export default defineConfig({
         changeOrigin: true,
       },
       "/api": {
-        target: "http://localhost:4433",
+        target: "http://localhost:3102",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
-        configure: (proxy) => {
-          proxy.on("proxyReq", (proxyReq) => {
-            // Browser flows need Origin and Cookie headers to pass through
-            // for Kratos CSRF validation. No stripping needed.
-          });
-        },
       },
     },
   },
@@ -166,16 +169,25 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            if (/[\\/]node_modules[\\/](react|react-dom|scheduler|use-sync-external-store)[\\/]/.test(id)) {
+            if (
+              /[\\/]node_modules[\\/](react|react-dom|scheduler|use-sync-external-store)[\\/]/
+                .test(id)
+            ) {
               return "vendor-react";
             }
             if (/[\\/]node_modules[\\/]@tanstack[\\/]/.test(id)) {
               return "vendor-router";
             }
-            if (/[\\/]node_modules[\\/](@ark-ui|@zag-js|@floating-ui|@internationalized)[\\/]/.test(id)) {
+            if (
+              /[\\/]node_modules[\\/](@ark-ui|@zag-js|@floating-ui|@internationalized)[\\/]/
+                .test(id)
+            ) {
               return "vendor-ark";
             }
-            if (/[\\/]node_modules[\\/](@sunbeam|@legendapp|@connectrpc|@bufbuild|@opentelemetry)[\\/]/.test(id)) {
+            if (
+              /[\\/]node_modules[\\/](@sunbeam|@legendapp|@connectrpc|@bufbuild|@opentelemetry)[\\/]/
+                .test(id)
+            ) {
               return "vendor-beam";
             }
           }

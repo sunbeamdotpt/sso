@@ -18,7 +18,9 @@ import { AuthProvider } from "./providers/auth.tsx";
 import "./styles/global.css";
 
 // Default to dark theme when the user has no saved preference.
-const hasSavedTheme = Boolean(globalThis.localStorage?.getItem("sunbeam-g2v:ui"));
+const hasSavedTheme = Boolean(
+  globalThis.localStorage?.getItem("sunbeam-g2v:ui"),
+);
 if (!hasSavedTheme) {
   uiActions.setTheme("dark");
 }
@@ -47,11 +49,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <FrameworkProvider
       transport={transport}
-      otel={
-        otlpUrl
-          ? { serviceName: "sso-ui", otlpUrl }
-          : undefined
-      }
+      otel={otlpUrl ? { serviceName: "sso-ui", otlpUrl } : undefined}
     >
       <AuthProvider>
         <RouterProvider router={router} />

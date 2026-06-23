@@ -1,5 +1,8 @@
-import { test, expect } from "@playwright/test";
-import { cleanupAllIdentities, createAuthenticatedIdentity } from "./utils/kratos.ts";
+import { expect, test } from "@playwright/test";
+import {
+  cleanupAllIdentities,
+  createAuthenticatedIdentity,
+} from "./utils/kratos.ts";
 
 /** Small delay between tests that hit Kratos SQLite to avoid "database is locked". */
 async function sqliteDelay(ms = 300) {
@@ -22,13 +25,16 @@ test.describe("Auth Flows", () => {
     await expect(page.getByRole("heading", { name: "Sign In" })).toBeVisible();
     await expect(page.getByLabel(/Username or Email/i)).toBeVisible();
     await expect(page.getByLabel(/Password/i)).toBeVisible();
-    await expect(page.getByRole("checkbox", { name: /Remember me/i })).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: /Remember me/i }))
+      .toBeVisible();
 
     await page.getByLabel(/Username or Email/i).fill(email);
     await page.getByLabel(/Password/i).fill(password);
     await page.getByRole("button", { name: /SIGN IN/i }).click();
 
-    await expect(page.getByText(/Login successful/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Login successful/i)).toBeVisible({
+      timeout: 10_000,
+    });
     await expect(page.getByRole("button", { name: /Log out/i })).toBeVisible();
   });
 
@@ -40,7 +46,8 @@ test.describe("Auth Flows", () => {
     await page.getByLabel(/Password/i).fill("wrong-password-123");
     await page.getByRole("button", { name: /SIGN IN/i }).click();
 
-    await expect(page.getByText(/credentials are invalid/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/credentials are invalid/i).first())
+      .toBeVisible({ timeout: 10_000 });
   });
 
   test("logout redirects to login", async ({ page }) => {
@@ -69,10 +76,12 @@ test.describe("Auth Flows", () => {
     await page.goto("/login");
     await page.getByRole("button", { name: /Forgot password/i }).click();
 
-    await expect(page.getByRole("heading", { name: "Forgot Password" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Forgot Password" }))
+      .toBeVisible();
     await page.getByLabel(/Email/i).fill(email);
     await page.getByRole("button", { name: /Send Reset Code/i }).click();
 
-    await expect(page.getByRole("heading", { name: "Enter Recovery Code" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Enter Recovery Code" }))
+      .toBeVisible();
   });
 });

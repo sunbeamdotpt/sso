@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { css } from "styled-system/css";
-import { Button, TextInput, Callout, Spinner } from "@sunbeam/beam-ui";
+import { Button, Callout, Spinner, TextInput } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
 import { isValidChallenge } from "../utils/redirect.ts";
 
@@ -21,7 +21,9 @@ export function OAuthLoginPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [loginChallenge, setLoginChallenge] = useState<LoginChallenge | null>(null);
+  const [loginChallenge, setLoginChallenge] = useState<LoginChallenge | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -49,7 +51,9 @@ export function OAuthLoginPage() {
         setLoginChallenge(data);
       })
       .catch((err: unknown) => {
-        setFormError(err instanceof Error ? err.message : "Failed to load login request");
+        setFormError(
+          err instanceof Error ? err.message : "Failed to load login request",
+        );
       })
       .finally(() => setIsLoading(false));
   }, [challenge]);
@@ -60,14 +64,17 @@ export function OAuthLoginPage() {
     setSubmitting(true);
     setFormError(null);
     try {
-      const result = await api.post<{ redirect_to: string }>("/hydra/login/accept", {
-        body: {
-          challenge,
-          subject: email,
-          remember: false,
-          remember_for: 0,
+      const result = await api.post<{ redirect_to: string }>(
+        "/hydra/login/accept",
+        {
+          body: {
+            challenge,
+            subject: email,
+            remember: false,
+            remember_for: 0,
+          },
         },
-      });
+      );
       if (result?.redirect_to) {
         globalThis.location.href = result.redirect_to;
       }
@@ -81,7 +88,13 @@ export function OAuthLoginPage() {
     return (
       <div className={wrapper}>
         <div className={card}>
-          <div className={css({ display: "flex", justifyContent: "center", padding: "32px" })}>
+          <div
+            className={css({
+              display: "flex",
+              justifyContent: "center",
+              padding: "32px",
+            })}
+          >
             <Spinner size="md" />
           </div>
         </div>
@@ -99,9 +112,7 @@ export function OAuthLoginPage() {
           requested by <strong>{clientName}</strong>
         </p>
 
-        {formError && (
-          <Callout variant="warning">{formError}</Callout>
-        )}
+        {formError && <Callout variant="warning">{formError}</Callout>}
 
         <form onSubmit={handleSubmit} className={formStack}>
           <TextInput
@@ -120,7 +131,11 @@ export function OAuthLoginPage() {
             onChange={setPassword}
             disabled={submitting}
           />
-          <Button variant="primary" type="submit" disabled={submitting || !email || !password}>
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={submitting || !email || !password}
+          >
             {submitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>

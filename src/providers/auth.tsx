@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { authActions } from "@sunbeam/g2v/state";
 import {
-  isSessionValidForThisBrowsingSession,
   clearRememberMeState,
+  isSessionValidForThisBrowsingSession,
 } from "../utils/remember-me.ts";
-import type { Session, Identity } from "../api/types.ts";
+import type { Identity, Session } from "../api/types.ts";
 
 function getDisplayName(identity: Identity): string {
   const traits = identity.traits as Record<string, unknown>;

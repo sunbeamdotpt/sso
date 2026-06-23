@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 const OUT = "e2e/screenshots";
 
@@ -20,7 +20,12 @@ function mockFlowAction(path: string, flowId: string) {
 
 async function mockAnonymousSession(page: Page) {
   await page.route("/api/sessions/whoami", async (route) => {
-    await route.fulfill(apiResponse({ error: { id: "session_inactive", status: "Unauthorized" } }, 401));
+    await route.fulfill(
+      apiResponse(
+        { error: { id: "session_inactive", status: "Unauthorized" } },
+        401,
+      ),
+    );
   });
 }
 
@@ -41,9 +46,29 @@ async function mockLoginFlow(page: Page) {
             action,
             method: "POST",
             nodes: [
-              { type: "input", group: "default", attributes: { name: "csrf_token", type: "hidden", value: "csrf" } },
-              { type: "input", group: "totp", attributes: { name: "method", type: "submit", value: "totp" } },
-              { type: "input", group: "lookup_secret", attributes: { name: "method", type: "submit", value: "lookup_secret" } },
+              {
+                type: "input",
+                group: "default",
+                attributes: {
+                  name: "csrf_token",
+                  type: "hidden",
+                  value: "csrf",
+                },
+              },
+              {
+                type: "input",
+                group: "totp",
+                attributes: { name: "method", type: "submit", value: "totp" },
+              },
+              {
+                type: "input",
+                group: "lookup_secret",
+                attributes: {
+                  name: "method",
+                  type: "submit",
+                  value: "lookup_secret",
+                },
+              },
             ],
             messages: [],
           },
@@ -57,11 +82,36 @@ async function mockLoginFlow(page: Page) {
             action,
             method: "POST",
             nodes: [
-              { type: "input", group: "default", attributes: { name: "csrf_token", type: "hidden", value: "csrf" } },
-              { type: "input", group: "default", attributes: { name: "identifier", type: "email", value: postBody.identifier } },
-              { type: "input", group: "default", attributes: { name: "password", type: "password", value: "" } },
+              {
+                type: "input",
+                group: "default",
+                attributes: {
+                  name: "csrf_token",
+                  type: "hidden",
+                  value: "csrf",
+                },
+              },
+              {
+                type: "input",
+                group: "default",
+                attributes: {
+                  name: "identifier",
+                  type: "email",
+                  value: postBody.identifier,
+                },
+              },
+              {
+                type: "input",
+                group: "default",
+                attributes: { name: "password", type: "password", value: "" },
+              },
             ],
-            messages: [{ type: "error", text: "The provided credentials are invalid. Check for spelling mistakes in your password or username, email address, or phone number.", id: 4000006 }],
+            messages: [{
+              type: "error",
+              text:
+                "The provided credentials are invalid. Check for spelling mistakes in your password or username, email address, or phone number.",
+              id: 4000006,
+            }],
           },
         }, 400));
       }
@@ -95,10 +145,26 @@ async function mockLoginFlow(page: Page) {
         action,
         method: "POST",
         nodes: [
-          { type: "input", group: "default", attributes: { name: "csrf_token", type: "hidden", value: "csrf" } },
-          { type: "input", group: "default", attributes: { name: "identifier", type: "email", value: "" } },
-          { type: "input", group: "default", attributes: { name: "password", type: "password", value: "" } },
-          { type: "input", group: "password", attributes: { name: "method", type: "submit", value: "password" } },
+          {
+            type: "input",
+            group: "default",
+            attributes: { name: "csrf_token", type: "hidden", value: "csrf" },
+          },
+          {
+            type: "input",
+            group: "default",
+            attributes: { name: "identifier", type: "email", value: "" },
+          },
+          {
+            type: "input",
+            group: "default",
+            attributes: { name: "password", type: "password", value: "" },
+          },
+          {
+            type: "input",
+            group: "password",
+            attributes: { name: "method", type: "submit", value: "password" },
+          },
         ],
         messages: [],
       },
@@ -122,10 +188,23 @@ async function mockRecoveryFlow(page: Page) {
           action,
           method: "POST",
           nodes: [
-            { type: "input", group: "default", attributes: { name: "csrf_token", type: "hidden", value: "csrf" } },
-            { type: "input", group: "code", attributes: { name: "code", type: "text", value: "" } },
+            {
+              type: "input",
+              group: "default",
+              attributes: { name: "csrf_token", type: "hidden", value: "csrf" },
+            },
+            {
+              type: "input",
+              group: "code",
+              attributes: { name: "code", type: "text", value: "" },
+            },
           ],
-          messages: [{ type: "info", text: "An email containing a recovery code has been sent to the email address you provided.", id: 1060003 }],
+          messages: [{
+            type: "info",
+            text:
+              "An email containing a recovery code has been sent to the email address you provided.",
+            id: 1060003,
+          }],
         },
       }));
     }
@@ -152,9 +231,21 @@ async function mockRecoveryFlow(page: Page) {
         action,
         method: "POST",
         nodes: [
-          { type: "input", group: "default", attributes: { name: "csrf_token", type: "hidden", value: "csrf" } },
-          { type: "input", group: "code", attributes: { name: "email", type: "email", value: "" } },
-          { type: "input", group: "code", attributes: { name: "method", type: "submit", value: "code" } },
+          {
+            type: "input",
+            group: "default",
+            attributes: { name: "csrf_token", type: "hidden", value: "csrf" },
+          },
+          {
+            type: "input",
+            group: "code",
+            attributes: { name: "email", type: "email", value: "" },
+          },
+          {
+            type: "input",
+            group: "code",
+            attributes: { name: "method", type: "submit", value: "code" },
+          },
         ],
         messages: [],
       },
@@ -163,49 +254,68 @@ async function mockRecoveryFlow(page: Page) {
 }
 
 async function mockHydraLogin(page: Page) {
-  await page.route(`/api/hydra/login?challenge=${LOGIN_CHALLENGE}`, async (route) => {
-    await route.fulfill(apiResponse({
-      challenge: LOGIN_CHALLENGE,
-      client: { client_name: "Example App" },
-      subject: "",
-      skip: false,
-    }));
-  });
+  await page.route(
+    `/api/hydra/login?challenge=${LOGIN_CHALLENGE}`,
+    async (route) => {
+      await route.fulfill(apiResponse({
+        challenge: LOGIN_CHALLENGE,
+        client: { client_name: "Example App" },
+        subject: "",
+        skip: false,
+      }));
+    },
+  );
 
   await page.route("/api/hydra/login/accept", async (route) => {
-    await route.fulfill(apiResponse({ redirect_to: "http://localhost:47823/auth/callback?code=abc" }));
+    await route.fulfill(
+      apiResponse({
+        redirect_to: "http://localhost:47823/auth/callback?code=abc",
+      }),
+    );
   });
 }
 
 async function mockHydraLogout(page: Page) {
-  await page.route(`/api/hydra/logout?challenge=${LOGOUT_CHALLENGE}`, async (route) => {
-    await route.fulfill(apiResponse({
-      challenge: LOGOUT_CHALLENGE,
-      subject: "user-1",
-      sid: "session-1",
-      rp_initiated: true,
-    }));
-  });
+  await page.route(
+    `/api/hydra/logout?challenge=${LOGOUT_CHALLENGE}`,
+    async (route) => {
+      await route.fulfill(apiResponse({
+        challenge: LOGOUT_CHALLENGE,
+        subject: "user-1",
+        sid: "session-1",
+        rp_initiated: true,
+      }));
+    },
+  );
 
   await page.route("/api/hydra/logout/accept", async (route) => {
-    await route.fulfill(apiResponse({ redirect_to: "http://localhost:3102/login" }));
+    await route.fulfill(
+      apiResponse({ redirect_to: "http://localhost:3102/login" }),
+    );
   });
 }
 
 async function mockHydraConsent(page: Page) {
-  await page.route(`/api/hydra/consent?challenge=${CONSENT_CHALLENGE}`, async (route) => {
-    await route.fulfill(apiResponse({
-      challenge: CONSENT_CHALLENGE,
-      client: { client_name: "Example App" },
-      subject: "user-1",
-      requested_scope: ["openid", "email", "profile", "offline_access"],
-      requested_access_token_audience: [],
-      skip: false,
-    }));
-  });
+  await page.route(
+    `/api/hydra/consent?challenge=${CONSENT_CHALLENGE}`,
+    async (route) => {
+      await route.fulfill(apiResponse({
+        challenge: CONSENT_CHALLENGE,
+        client: { client_name: "Example App" },
+        subject: "user-1",
+        requested_scope: ["openid", "email", "profile", "offline_access"],
+        requested_access_token_audience: [],
+        skip: false,
+      }));
+    },
+  );
 
   await page.route("/api/hydra/consent/accept", async (route) => {
-    await route.fulfill(apiResponse({ redirect_to: "http://localhost:47823/auth/callback?code=abc" }));
+    await route.fulfill(
+      apiResponse({
+        redirect_to: "http://localhost:47823/auth/callback?code=abc",
+      }),
+    );
   });
 }
 
@@ -220,7 +330,10 @@ test.describe("Mocked page state screenshots", () => {
     await page.goto("/login");
     await settle(page);
     await expect(page.getByRole("heading", { name: "Sign In" })).toBeVisible();
-    await page.screenshot({ path: `${OUT}/login-password.png`, fullPage: true });
+    await page.screenshot({
+      path: `${OUT}/login-password.png`,
+      fullPage: true,
+    });
   });
 
   test("/login error state", async ({ page }) => {
@@ -230,7 +343,8 @@ test.describe("Mocked page state screenshots", () => {
     await page.getByLabel(/Username or Email/i).fill("error@sunbeam.pt");
     await page.getByLabel(/Password/i).fill("wrong");
     await page.getByRole("button", { name: /SIGN IN/i }).click();
-    await expect(page.getByText(/credentials are invalid/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/credentials are invalid/i).first())
+      .toBeVisible({ timeout: 10_000 });
     await page.screenshot({ path: `${OUT}/login-error.png`, fullPage: true });
   });
 
@@ -241,7 +355,9 @@ test.describe("Mocked page state screenshots", () => {
     await page.getByLabel(/Username or Email/i).fill("mfa@sunbeam.pt");
     await page.getByLabel(/Password/i).fill("password");
     await page.getByRole("button", { name: /SIGN IN/i }).click();
-    await expect(page.getByRole("heading", { name: "Two-Factor Authentication" })).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.getByRole("heading", { name: "Two-Factor Authentication" }),
+    ).toBeVisible({ timeout: 10_000 });
     await page.screenshot({ path: `${OUT}/login-mfa.png`, fullPage: true });
   });
 
@@ -258,8 +374,13 @@ test.describe("Mocked page state screenshots", () => {
     await page.getByLabel(/Username or Email/i).fill("user@sunbeam.pt");
     await page.getByLabel(/Password/i).fill("password");
     await page.getByRole("button", { name: /SIGN IN/i }).click();
-    await expect(page.getByText(/Login successful/i)).toBeVisible({ timeout: 10_000 });
-    await page.screenshot({ path: `${OUT}/login-authenticated.png`, fullPage: true });
+    await expect(page.getByText(/Login successful/i)).toBeVisible({
+      timeout: 10_000,
+    });
+    await page.screenshot({
+      path: `${OUT}/login-authenticated.png`,
+      fullPage: true,
+    });
   });
 
   test("/login recovery states", async ({ page }) => {
@@ -268,44 +389,66 @@ test.describe("Mocked page state screenshots", () => {
     await mockRecoveryFlow(page);
     await page.goto("/login");
     await page.getByRole("button", { name: /Forgot password/i }).click();
-    await expect(page.getByRole("heading", { name: "Forgot Password" })).toBeVisible();
-    await page.screenshot({ path: `${OUT}/login-recovery-email.png`, fullPage: true });
+    await expect(page.getByRole("heading", { name: "Forgot Password" }))
+      .toBeVisible();
+    await page.screenshot({
+      path: `${OUT}/login-recovery-email.png`,
+      fullPage: true,
+    });
 
     await page.getByLabel(/Email/i).fill("recovery@sunbeam.pt");
     await page.getByRole("button", { name: /Send Reset Code/i }).click();
-    await expect(page.getByRole("heading", { name: "Enter Recovery Code" })).toBeVisible();
-    await page.screenshot({ path: `${OUT}/login-recovery-code.png`, fullPage: true });
+    await expect(page.getByRole("heading", { name: "Enter Recovery Code" }))
+      .toBeVisible();
+    await page.screenshot({
+      path: `${OUT}/login-recovery-code.png`,
+      fullPage: true,
+    });
 
     await page.locator("input[placeholder='000000']").fill("123456");
     await page.getByRole("button", { name: /Verify/i }).click();
-    await expect(page.getByText(/Password reset successful/i)).toBeVisible({ timeout: 10_000 });
-    await page.screenshot({ path: `${OUT}/login-recovery-success.png`, fullPage: true });
+    await expect(page.getByText(/Password reset successful/i)).toBeVisible({
+      timeout: 10_000,
+    });
+    await page.screenshot({
+      path: `${OUT}/login-recovery-success.png`,
+      fullPage: true,
+    });
   });
 
   test("/oauth/login state", async ({ page }) => {
     await mockHydraLogin(page);
     await page.goto(`/oauth/login?login_challenge=${LOGIN_CHALLENGE}`);
-    await expect(page.getByRole("heading", { name: /Sign in to continue/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /Sign in to continue/i }))
+      .toBeVisible({ timeout: 10_000 });
     await page.screenshot({ path: `${OUT}/oauth-login.png`, fullPage: true });
   });
 
   test("/oauth/logged-out state", async ({ page }) => {
     await mockHydraLogout(page);
     await page.goto(`/oauth/logged-out?logout_challenge=${LOGOUT_CHALLENGE}`);
-    await expect(page.getByRole("heading", { name: /Sign out of Sunbeam/i })).toBeVisible();
-    await page.screenshot({ path: `${OUT}/oauth-logged-out.png`, fullPage: true });
+    await expect(page.getByRole("heading", { name: /Sign out of Sunbeam/i }))
+      .toBeVisible();
+    await page.screenshot({
+      path: `${OUT}/oauth-logged-out.png`,
+      fullPage: true,
+    });
   });
 
   test("/consent state", async ({ page }) => {
     await mockHydraConsent(page);
     await page.goto(`/consent?consent_challenge=${CONSENT_CHALLENGE}`);
-    await expect(page.getByRole("heading", { name: /Authorize Example App/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /Authorize Example App/i }))
+      .toBeVisible({ timeout: 10_000 });
     await page.screenshot({ path: `${OUT}/consent.png`, fullPage: true });
   });
 
   test("/error state", async ({ page }) => {
-    await page.goto("/error?error=access_denied&error_description=User+denied+access");
-    await expect(page.getByRole("heading", { name: "Something went wrong" })).toBeVisible();
+    await page.goto(
+      "/error?error=access_denied&error_description=User+denied+access",
+    );
+    await expect(page.getByRole("heading", { name: "Something went wrong" }))
+      .toBeVisible();
     await page.screenshot({ path: `${OUT}/error.png`, fullPage: true });
   });
 });

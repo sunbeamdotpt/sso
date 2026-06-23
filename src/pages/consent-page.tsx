@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { css } from "styled-system/css";
-import { Button, Checkbox, Callout, Spinner } from "@sunbeam/beam-ui";
+import { Button, Callout, Checkbox, Spinner } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
 import { isValidChallenge } from "../utils/redirect.ts";
 
@@ -43,15 +43,18 @@ export function ConsentPage() {
       .then(async (data) => {
         // If Hydra says to skip consent, accept with all requested scopes.
         if (data.skip) {
-          const result = await api.post<{ redirect_to: string }>("/hydra/consent/accept", {
-            body: {
-              challenge,
-              grant_scope: data.requested_scope ?? [],
-              remember: false,
-              remember_for: 0,
-              session: {},
+          const result = await api.post<{ redirect_to: string }>(
+            "/hydra/consent/accept",
+            {
+              body: {
+                challenge,
+                grant_scope: data.requested_scope ?? [],
+                remember: false,
+                remember_for: 0,
+                session: {},
+              },
             },
-          });
+          );
           if (result?.redirect_to) {
             globalThis.location.href = result.redirect_to;
           }
@@ -65,7 +68,9 @@ export function ConsentPage() {
         setScopeStates(initial);
       })
       .catch((err: unknown) => {
-        setFormError(err instanceof Error ? err.message : "Failed to load consent request");
+        setFormError(
+          err instanceof Error ? err.message : "Failed to load consent request",
+        );
       })
       .finally(() => setIsLoading(false));
   }, [challenge]);
@@ -78,20 +83,25 @@ export function ConsentPage() {
       const grantedScopes = Object.entries(scopeStates)
         .filter(([, v]) => v)
         .map(([k]) => k);
-      const result = await api.post<{ redirect_to: string }>("/hydra/consent/accept", {
-        body: {
-          challenge,
-          grant_scope: grantedScopes,
-          remember,
-          remember_for: remember ? 3600 : 0,
-          session: {},
+      const result = await api.post<{ redirect_to: string }>(
+        "/hydra/consent/accept",
+        {
+          body: {
+            challenge,
+            grant_scope: grantedScopes,
+            remember,
+            remember_for: remember ? 3600 : 0,
+            session: {},
+          },
         },
-      });
+      );
       if (result?.redirect_to) {
         globalThis.location.href = result.redirect_to;
       }
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Failed to accept consent");
+      setFormError(
+        err instanceof Error ? err.message : "Failed to accept consent",
+      );
       setSubmitting(false);
     }
   }
@@ -101,18 +111,23 @@ export function ConsentPage() {
     setSubmitting(true);
     setFormError(null);
     try {
-      const result = await api.post<{ redirect_to: string }>("/hydra/consent/reject", {
-        body: {
-          challenge,
-          error: "access_denied",
-          error_description: "User denied consent",
+      const result = await api.post<{ redirect_to: string }>(
+        "/hydra/consent/reject",
+        {
+          body: {
+            challenge,
+            error: "access_denied",
+            error_description: "User denied consent",
+          },
         },
-      });
+      );
       if (result?.redirect_to) {
         globalThis.location.href = result.redirect_to;
       }
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Failed to reject consent");
+      setFormError(
+        err instanceof Error ? err.message : "Failed to reject consent",
+      );
       setSubmitting(false);
     }
   }
@@ -121,7 +136,13 @@ export function ConsentPage() {
     return (
       <div className={wrapper}>
         <div className={card}>
-          <div className={css({ display: "flex", justifyContent: "center", padding: "32px" })}>
+          <div
+            className={css({
+              display: "flex",
+              justifyContent: "center",
+              padding: "32px",
+            })}
+          >
             <Spinner size="md" />
           </div>
         </div>
@@ -141,16 +162,18 @@ export function ConsentPage() {
       <div className={card}>
         <h1 className={title}>Authorize {clientName}</h1>
         <p className={subtitle}>
-          {subject ? (
-            <>Signed in as <strong>{subject}</strong></>
-          ) : (
-            "This application is requesting access to your account"
-          )}
+          {subject
+            ? (
+              <>
+                Signed in as <strong>{subject}</strong>
+              </>
+            )
+            : (
+              "This application is requesting access to your account"
+            )}
         </p>
 
-        {(formError) && (
-          <Callout variant="warning">{formError}</Callout>
-        )}
+        {formError && <Callout variant="warning">{formError}</Callout>}
 
         {scopes.length > 0 && (
           <div className={scopeList}>
@@ -161,8 +184,10 @@ export function ConsentPage() {
                   <Checkbox
                     checked={scopeStates[scope.name] ?? false}
                     onChange={(checked) =>
-                      setScopeStates((prev) => ({ ...prev, [scope.name]: checked }))
-                    }
+                      setScopeStates((prev) => ({
+                        ...prev,
+                        [scope.name]: checked,
+                      }))}
                   />
                   <div className={scopeInfo}>
                     <div className={scopeName}>{scope.name}</div>
@@ -183,15 +208,27 @@ export function ConsentPage() {
         </div>
 
         <div className={actions}>
-          <Button variant="ghost" type="button" onClick={handleDeny} disabled={submitting}>
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={handleDeny}
+            disabled={submitting}
+          >
             Deny
           </Button>
-          <Button variant="primary" type="button" onClick={handleAllow} disabled={submitting}>
+          <Button
+            variant="primary"
+            type="button"
+            onClick={handleAllow}
+            disabled={submitting}
+          >
             {submitting ? <Spinner size="sm" /> : "Allow"}
           </Button>
         </div>
 
-        <p className={footer}>You can revoke access any time from your account settings.</p>
+        <p className={footer}>
+          You can revoke access any time from your account settings.
+        </p>
       </div>
     </div>
   );

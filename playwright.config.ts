@@ -4,14 +4,9 @@ import { resolve } from "node:path";
 /**
  * Playwright configuration for the SSO admin app E2E test suite.
  *
- * Tests run against the Vite dev server (port 5175) with a real Kratos
- * instance (port 4433 public / 4434 admin) in the background.
- *
- * NOTE: webServer is omitted because it is Node.js-specific and causes
- * "package.json not found" errors under Deno.  Start the dev server
- * manually (`deno task dev`) before running tests, or use:
- *
- *   deno task dev & sleep 5 && deno task test:e2e
+ * Tests run against the real Rust SSO server (port 3102) with the SPA
+ * embedded, just like production. The docker-compose stack (Kratos on
+ * 4433/4434, Hydra on 4444/4445) must be running.
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -25,7 +20,7 @@ export default defineConfig({
   outputDir: resolve(__dirname, "e2e/screenshots"),
 
   use: {
-    baseURL: "http://localhost:5175",
+    baseURL: "http://localhost:3102",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
@@ -37,4 +32,18 @@ export default defineConfig({
   ],
 
   globalSetup: resolve(__dirname, "e2e/global-setup.ts"),
+
+  webServer: {
+    command: "deno task build && cargo run --manifest-path api/Cargo.toml",
+    url: "http://localhost:3102/health",
+    timeout: 300_000,
+    reuseExistingServer: !process.env["CI"],
+    env: {
+      KRATOS_PUBLIC_URL: "http://localhost:4433",
+      KRATOS_ADMIN_URL: "http://localhost:4434",
+      HYDRA_ADMIN_URL: "http://localhost:4445",
+      HYDRA_PUBLIC_URL: "http://localhost:4444",
+      RUST_LOG: "info",
+    },
+  },
 });

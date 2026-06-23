@@ -1,4 +1,4 @@
-import { useSearch, Link } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
 import { css } from "styled-system/css";
 import { Button } from "@sunbeam/beam-ui";
 import { sanitizeDisplayText } from "../utils/redirect.ts";
@@ -16,13 +16,9 @@ export function ErrorPage() {
         <h1 className={title}>Something went wrong</h1>
         <p className={code}>{error}</p>
 
-        {errorDescription && (
-          <p className={description}>{errorDescription}</p>
-        )}
+        {errorDescription && <p className={description}>{errorDescription}</p>}
 
-        {errorHint && (
-          <p className={hint}>{errorHint}</p>
-        )}
+        {errorHint && <p className={hint}>{errorHint}</p>}
 
         <div className={actions}>
           <Link to="/login">

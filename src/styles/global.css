@@ -1,17 +1,27 @@
 @layer reset, base, tokens, recipes, utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Ysabeau+Infant:ital,wght@0,1..1000;1,1..1000&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Ysabeau+Infant:ital,wght@0,1..1000;1,1..1000&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
 
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--colors-accent) transparent;
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--colors-accent); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: var(--colors-sunbeam\.flame); }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--colors-accent);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--colors-sunbeam\.flame);
+}
 
 ::selection {
   background: var(--colors-accent);
@@ -45,9 +55,9 @@ body {
 [data-theme="light"] {
   --colors-bg\.page: #fffaeb;
   --colors-bg\.card: #fff0c2;
-  --colors-bg\.nav: rgba(255,250,235,0.92);
+  --colors-bg\.nav: rgba(255, 250, 235, 0.92);
   --colors-text\.primary: #1f1f1f;
-  --colors-text\.secondary: hsl(0,0%,24%);
+  --colors-text\.secondary: hsl(0, 0%, 24%);
   --colors-text\.muted: #7f6315;
   --colors-border\.default: rgba(127, 99, 21, 0.15);
   --colors-border\.subtle: rgba(127, 99, 21, 0.08);

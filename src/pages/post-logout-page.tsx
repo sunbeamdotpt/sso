@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { css } from "styled-system/css";
 import { Button, Callout, Spinner } from "@sunbeam/beam-ui";
@@ -19,7 +19,9 @@ export function PostLogoutPage() {
   const challenge = isValidChallenge(rawChallenge) ? rawChallenge : undefined;
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [_logoutChallenge, setLogoutChallenge] = useState<LogoutChallenge | null>(null);
+  const [_logoutChallenge, setLogoutChallenge] = useState<
+    LogoutChallenge | null
+  >(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -29,7 +31,9 @@ export function PostLogoutPage() {
       .get<LogoutChallenge>(`/hydra/logout?challenge=${challenge}`)
       .then((data) => setLogoutChallenge(data))
       .catch((err: unknown) => {
-        setFormError(err instanceof Error ? err.message : "Failed to load logout request");
+        setFormError(
+          err instanceof Error ? err.message : "Failed to load logout request",
+        );
       })
       .finally(() => setIsLoading(false));
   }, [challenge]);
@@ -39,7 +43,10 @@ export function PostLogoutPage() {
     setSubmitting(true);
     setFormError(null);
     try {
-      const result = await api.post<{ redirect_to: string }>("/hydra/logout/accept", { body: { challenge } });
+      const result = await api.post<{ redirect_to: string }>(
+        "/hydra/logout/accept",
+        { body: { challenge } },
+      );
       if (result?.redirect_to) {
         globalThis.location.href = result.redirect_to;
       }
@@ -66,7 +73,13 @@ export function PostLogoutPage() {
     return (
       <div className={wrapper}>
         <div className={card}>
-          <div className={css({ display: "flex", justifyContent: "center", padding: "32px" })}>
+          <div
+            className={css({
+              display: "flex",
+              justifyContent: "center",
+              padding: "32px",
+            })}
+          >
             <Spinner size="md" />
           </div>
         </div>
@@ -79,18 +92,27 @@ export function PostLogoutPage() {
       <div className={card}>
         <h1 className={title}>Sign out of Sunbeam?</h1>
         <p className={subtitle}>
-          You&rsquo;ll be signed out of Sunbeam and any other apps that share this session.
+          You&rsquo;ll be signed out of Sunbeam and any other apps that share
+          this session.
         </p>
 
-        {formError && (
-          <Callout variant="warning">{formError}</Callout>
-        )}
+        {formError && <Callout variant="warning">{formError}</Callout>}
 
         <div className={actions}>
-          <Button variant="primary" type="button" onClick={handleSignOut} disabled={submitting}>
+          <Button
+            variant="primary"
+            type="button"
+            onClick={handleSignOut}
+            disabled={submitting}
+          >
             {submitting ? <Spinner size="sm" /> : "Sign out"}
           </Button>
-          <Button variant="ghost" type="button" onClick={handleCancel} disabled={submitting}>
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={handleCancel}
+            disabled={submitting}
+          >
             No, stay signed in
           </Button>
         </div>

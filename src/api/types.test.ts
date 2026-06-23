@@ -1,5 +1,10 @@
-import { describe, it, expect } from "vitest";
-import { findNodeByName, findNodesByGroup, getNodeValue, getFlowError } from "./types.ts";
+import { describe, expect, it } from "vitest";
+import {
+  findNodeByName,
+  findNodesByGroup,
+  getFlowError,
+  getNodeValue,
+} from "./types.ts";
 import { mockLoginFlow } from "../test/mocks.ts";
 
 describe("findNodeByName", () => {
@@ -34,14 +39,20 @@ describe("getNodeValue", () => {
 
 describe("getFlowError", () => {
   it("returns flow-level error message", () => {
-    const flow = { ...mockLoginFlow.ui, messages: [{ type: "error", text: "Bad request", id: 1 }] };
+    const flow = {
+      ...mockLoginFlow.ui,
+      messages: [{ type: "error", text: "Bad request", id: 1 }],
+    };
     expect(getFlowError(flow)).toBe("Bad request");
   });
   it("returns node-level error message", () => {
     const flow = {
       ...mockLoginFlow.ui,
       messages: [],
-      nodes: [{ ...mockLoginFlow.ui.nodes[0], messages: [{ type: "error", text: "Field error", id: 2 }] }],
+      nodes: [{
+        ...mockLoginFlow.ui.nodes[0],
+        messages: [{ type: "error", text: "Field error", id: 2 }],
+      }],
     };
     expect(getFlowError(flow)).toBe("Field error");
   });

@@ -25,12 +25,14 @@ const headerBar = css({
   _dark: {
     bg: "rgba(31, 31, 31, 0.85)",
     borderColor: "rgba(255, 161, 16, 0.12)",
-    boxShadow: "0 3px 20px rgba(127, 99, 21, 0.15), 0 1px 0 rgba(255, 161, 16, 0.08) inset",
+    boxShadow:
+      "0 3px 20px rgba(127, 99, 21, 0.15), 0 1px 0 rgba(255, 161, 16, 0.08) inset",
   },
   _light: {
     bg: "rgba(255, 250, 235, 0.85)",
     borderColor: "rgba(127, 99, 21, 0.12)",
-    boxShadow: "0 3px 20px rgba(127, 99, 21, 0.12), 0 1px 0 rgba(255, 255, 255, 0.5) inset",
+    boxShadow:
+      "0 3px 20px rgba(127, 99, 21, 0.12), 0 1px 0 rgba(255, 255, 255, 0.5) inset",
   },
 });
 

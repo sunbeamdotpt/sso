@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { authActions } from "@sunbeam/g2v/state";
 import { api } from "./client.ts";
 

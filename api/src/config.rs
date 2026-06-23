@@ -1,3 +1,6 @@
+// Copyright Sunbeam Studios 2026
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! SSO server configuration.
 
 use anyhow::{Context, Result};
@@ -13,6 +16,8 @@ pub struct Config {
     pub kratos_admin_url: String,
     /// Hydra admin API base URL.
     pub hydra_admin_url: String,
+    /// Hydra public API base URL.
+    pub hydra_public_url: String,
 }
 
 impl Config {
@@ -26,6 +31,8 @@ impl Config {
                 .unwrap_or_else(|_| "http://kratos-admin.ory.svc.cluster.local:80".to_string()),
             hydra_admin_url: std::env::var("HYDRA_ADMIN_URL")
                 .unwrap_or_else(|_| "http://hydra-admin.ory.svc.cluster.local:4445".to_string()),
+            hydra_public_url: std::env::var("HYDRA_PUBLIC_URL")
+                .unwrap_or_else(|_| "http://hydra-public.ory.svc.cluster.local:4444".to_string()),
         })
     }
 
@@ -42,6 +49,11 @@ impl Config {
     /// Build a request URL for the Hydra admin API.
     pub fn hydra_admin_target(&self, path_and_query: &str) -> String {
         format!("{}{}", self.hydra_admin_url, path_and_query)
+    }
+
+    /// Build a request URL for the Hydra public API.
+    pub fn hydra_public_target(&self, path_and_query: &str) -> String {
+        format!("{}{}", self.hydra_public_url, path_and_query)
     }
 }
 

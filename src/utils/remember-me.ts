@@ -20,7 +20,10 @@ function getBroadcastChannel(): BroadcastChannel | null {
         try {
           const token = sessionStorage.getItem(SESSION_KEY);
           if (token) {
-            broadcastChannel?.postMessage({ type: "sessionActive", value: token });
+            broadcastChannel?.postMessage({
+              type: "sessionActive",
+              value: token,
+            });
           }
         } catch {
           // ignore
@@ -44,7 +47,10 @@ export function storeRememberMePreference(remember: boolean): void {
     } else {
       const token = crypto.randomUUID?.() ?? String(Date.now());
       sessionStorage.setItem(SESSION_KEY, token);
-      getBroadcastChannel()?.postMessage({ type: "sessionActive", value: token });
+      getBroadcastChannel()?.postMessage({
+        type: "sessionActive",
+        value: token,
+      });
     }
   } catch {
     // ignore storage errors

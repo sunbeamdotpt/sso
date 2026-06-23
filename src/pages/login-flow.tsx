@@ -1,11 +1,18 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
-import { LoginForm, TwoFactorForm, TextInput, Button, Callout, Toast } from "@sunbeam/beam-ui";
+import {
+  Button,
+  Callout,
+  LoginForm,
+  TextInput,
+  Toast,
+  TwoFactorForm,
+} from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
 import { setUserSession } from "../providers/auth.tsx";
-import { submitFlow, needsMfa, getAvailableMfaMethods } from "../api/flows.ts";
+import { getAvailableMfaMethods, needsMfa, submitFlow } from "../api/flows.ts";
 import { storeRememberMePreference } from "../utils/remember-me.ts";
 import { getSafeReturnUrl } from "../utils/redirect.ts";
 import type { LoginFlow, RecoveryFlow } from "../api/types.ts";
@@ -14,7 +21,14 @@ type PageMode =
   | { type: "login"; step: "password" | "mfa" | "submitting" }
   | { type: "recovery"; step: "email" | "code" | "submitting" | "success" };
 
-function getKratosError(flow: { ui?: { messages?: { type: string; text: string }[]; nodes?: { messages?: { type: string; text: string }[] }[] } }): string | undefined {
+function getKratosError(
+  flow: {
+    ui?: {
+      messages?: { type: string; text: string }[];
+      nodes?: { messages?: { type: string; text: string }[] }[];
+    };
+  },
+): string | undefined {
   const ui = flow.ui;
   if (!ui) return undefined;
   const flowMsg = ui.messages?.find((m) => m.type === "error");
@@ -26,7 +40,9 @@ function getKratosError(flow: { ui?: { messages?: { type: string; text: string }
   return undefined;
 }
 
-function getOAuthProviders(flow: LoginFlow | null): Array<{ name: string; icon: string; onClick: () => void }> {
+function getOAuthProviders(
+  flow: LoginFlow | null,
+): Array<{ name: string; icon: string; onClick: () => void }> {
   if (!flow?.ui) return [];
   return flow.ui.nodes
     .filter((n) => n.group === "oidc" && n.attributes.name === "provider")
@@ -34,7 +50,9 @@ function getOAuthProviders(flow: LoginFlow | null): Array<{ name: string; icon: 
       name: n.meta?.label?.text ?? String(n.attributes.value),
       icon: String(n.attributes.value),
       onClick: () => {
-        submitFlow(flow as LoginFlow & { ui: NonNullable<LoginFlow["ui"]> }, { provider: n.attributes.value }, "oidc");
+        submitFlow(flow as LoginFlow & { ui: NonNullable<LoginFlow["ui"]> }, {
+          provider: n.attributes.value,
+        }, "oidc");
       },
     }));
 }
@@ -43,21 +61,29 @@ export function LoginFlowPage() {
   const search = useSearch({ from: "/login" }) as { flow?: string };
   const flowId = search.flow;
 
-  const [mode, setMode] = useState<PageMode>({ type: "login", step: "password" });
+  const [mode, setMode] = useState<PageMode>({
+    type: "login",
+    step: "password",
+  });
   const [loginFlow, setLoginFlow] = useState<LoginFlow | null>(null);
   const [recoveryFlow, setRecoveryFlow] = useState<RecoveryFlow | null>(null);
   const [selectedMfaMethod, setSelectedMfaMethod] = useState<string>("");
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
-  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info"; visible: boolean }>({
+  const [toast, setToast] = useState<
+    { message: string; variant: "success" | "error" | "info"; visible: boolean }
+  >({
     message: "",
     variant: "info",
     visible: false,
   });
 
-  const showToast = useCallback((message: string, variant: "success" | "error" | "info" = "info") => {
-    setToast({ message, variant, visible: true });
-  }, []);
+  const showToast = useCallback(
+    (message: string, variant: "success" | "error" | "info" = "info") => {
+      setToast({ message, variant, visible: true });
+    },
+    [],
+  );
 
   const hideToast = useCallback(() => {
     setToast((prev) => ({ ...prev, visible: false }));
@@ -65,7 +91,9 @@ export function LoginFlowPage() {
 
   const loginQuery = useRestQuery<LoginFlow>(
     api,
-    flowId ? `/self-service/login/flows?id=${flowId}` : "/self-service/login/browser",
+    flowId
+      ? `/self-service/login/flows?id=${flowId}`
+      : "/self-service/login/browser",
     { queryKey: flowId ? ["login-flow", flowId] : ["login-flow"] },
   );
 
@@ -77,16 +105,27 @@ export function LoginFlowPage() {
 
   const currentLoginFlow = loginFlow ?? loginQuery.data ?? null;
   const currentRecoveryFlow = recoveryFlow ?? recoveryQuery.data ?? null;
-  const availableMethods = currentLoginFlow ? getAvailableMfaMethods(currentLoginFlow) : [];
+  const availableMethods = currentLoginFlow
+    ? getAvailableMfaMethods(currentLoginFlow)
+    : [];
   const activeMfaMethod = selectedMfaMethod || availableMethods[0] || "";
-  const loginError = currentLoginFlow ? getKratosError(currentLoginFlow) : undefined;
-  const recoveryError = currentRecoveryFlow ? getKratosError(currentRecoveryFlow) : undefined;
+  const loginError = currentLoginFlow
+    ? getKratosError(currentLoginFlow)
+    : undefined;
+  const recoveryError = currentRecoveryFlow
+    ? getKratosError(currentRecoveryFlow)
+    : undefined;
   const oauthProviders = getOAuthProviders(currentLoginFlow);
 
   const isLoginSubmitting = mode.type === "login" && mode.step === "submitting";
-  const isRecoverySubmitting = mode.type === "recovery" && mode.step === "submitting";
+  const isRecoverySubmitting = mode.type === "recovery" &&
+    mode.step === "submitting";
 
-  const handleLoginSubmit = async (_username: string, password: string, _remember: boolean) => {
+  const handleLoginSubmit = async (
+    _username: string,
+    password: string,
+    _remember: boolean,
+  ) => {
     if (!currentLoginFlow?.ui?.action) return;
 
     setMode({ type: "login", step: "submitting" });
@@ -200,7 +239,9 @@ export function LoginFlowPage() {
     hideToast();
 
     const result = await submitFlow(
-      currentRecoveryFlow as RecoveryFlow & { ui: NonNullable<RecoveryFlow["ui"]> },
+      currentRecoveryFlow as RecoveryFlow & {
+        ui: NonNullable<RecoveryFlow["ui"]>;
+      },
       { email: recoveryEmail },
       "code",
     );
@@ -248,7 +289,9 @@ export function LoginFlowPage() {
     hideToast();
 
     const result = await submitFlow(
-      currentRecoveryFlow as RecoveryFlow & { ui: NonNullable<RecoveryFlow["ui"]> },
+      currentRecoveryFlow as RecoveryFlow & {
+        ui: NonNullable<RecoveryFlow["ui"]>;
+      },
       { code: recoveryCode },
       "code",
     );
@@ -293,7 +336,12 @@ export function LoginFlowPage() {
 
   return (
     <div className={wrapper}>
-      <Toast message={toast.message} variant={toast.variant} visible={toast.visible} onDismiss={hideToast} />
+      <Toast
+        message={toast.message}
+        variant={toast.variant}
+        visible={toast.visible}
+        onDismiss={hideToast}
+      />
 
       {loginQuery.isLoading && mode.type === "login" && !currentLoginFlow && (
         <p className={statusText}>Loading…</p>
@@ -302,21 +350,28 @@ export function LoginFlowPage() {
         <p className={errorText}>{loginQuery.error.message}</p>
       )}
 
-      {mode.type === "login" && currentLoginFlow && mode.step === "password" && (
-        <>
-          <LoginForm
-            onSubmit={handleLoginSubmit}
-            oauthProviders={oauthProviders.length > 0 ? oauthProviders : undefined}
-            error={loginError}
-            loading={isLoginSubmitting}
-          />
-          <div className={links}>
-            <button type="button" className={textLink} onClick={switchToRecovery}>
-              Forgot password?
-            </button>
-          </div>
-        </>
-      )}
+      {mode.type === "login" && currentLoginFlow && mode.step === "password" &&
+        (
+          <>
+            <LoginForm
+              onSubmit={handleLoginSubmit}
+              oauthProviders={oauthProviders.length > 0
+                ? oauthProviders
+                : undefined}
+              error={loginError}
+              loading={isLoginSubmitting}
+            />
+            <div className={links}>
+              <button
+                type="button"
+                className={textLink}
+                onClick={switchToRecovery}
+              >
+                Forgot password?
+              </button>
+            </div>
+          </>
+        )}
 
       {mode.type === "login" && currentLoginFlow && mode.step === "mfa" && (
         <div className={mfaWrapper}>
@@ -326,7 +381,9 @@ export function LoginFlowPage() {
                 <button
                   key={method}
                   type="button"
-                  className={method === activeMfaMethod ? methodButtonSelected : methodButton}
+                  className={method === activeMfaMethod
+                    ? methodButtonSelected
+                    : methodButton}
                   onClick={() => setSelectedMfaMethod(method)}
                 >
                   {method === "totp" ? "Authenticator app" : "Backup code"}
@@ -336,11 +393,17 @@ export function LoginFlowPage() {
           )}
           <TwoFactorForm
             onSubmit={handleMfaSubmit}
-            onScratchCode={activeMfaMethod === "totp" ? handleScratchCode : handleBackToPassword}
+            onScratchCode={activeMfaMethod === "totp"
+              ? handleScratchCode
+              : handleBackToPassword}
             error={loginError}
             loading={isLoginSubmitting}
           />
-          <button type="button" className={backLink} onClick={handleBackToPassword}>
+          <button
+            type="button"
+            className={backLink}
+            onClick={handleBackToPassword}
+          >
             ← Back to sign in
           </button>
         </div>
@@ -349,10 +412,13 @@ export function LoginFlowPage() {
       {mode.type === "recovery" && mode.step === "email" && (
         <div className={card}>
           <h2 className={title}>Forgot Password</h2>
-          {recoveryError && <Callout variant="warning">{recoveryError}</Callout>}
+          {recoveryError && (
+            <Callout variant="warning">{recoveryError}</Callout>
+          )}
           <form onSubmit={handleRecoveryEmailSubmit} className={formStack}>
             <p className={subtitle}>
-              Enter your email address and we&apos;ll send you a code to reset your password.
+              Enter your email address and we&apos;ll send you a code to reset
+              your password.
             </p>
             <TextInput
               label="Email"
@@ -385,14 +451,23 @@ export function LoginFlowPage() {
               className={codeInput}
               placeholder="000000"
               value={recoveryCode}
-              onChange={(e) => setRecoveryCode(e.target.value)}
+              onChange={(e) =>
+                setRecoveryCode(e.target.value)}
               disabled={isRecoverySubmitting}
               autoFocus
             />
-            <button type="submit" className={submitButton} disabled={isRecoverySubmitting || !recoveryCode}>
+            <button
+              type="submit"
+              className={submitButton}
+              disabled={isRecoverySubmitting || !recoveryCode}
+            >
               {isRecoverySubmitting ? "Verifying…" : "Verify"}
             </button>
-            <button type="button" className={backLink} onClick={() => setMode({ type: "recovery", step: "email" })}>
+            <button
+              type="button"
+              className={backLink}
+              onClick={() => setMode({ type: "recovery", step: "email" })}
+            >
               ← Use a different email
             </button>
           </form>
@@ -402,8 +477,15 @@ export function LoginFlowPage() {
       {mode.type === "recovery" && mode.step === "success" && (
         <div className={card}>
           <h2 className={title}>Success</h2>
-          <p className={subtitle}>Your password has been reset. You can now sign in with your new password.</p>
-          <button type="button" className={submitButton} onClick={switchToLogin}>
+          <p className={subtitle}>
+            Your password has been reset. You can now sign in with your new
+            password.
+          </p>
+          <button
+            type="button"
+            className={submitButton}
+            onClick={switchToLogin}
+          >
             Sign in
           </button>
         </div>

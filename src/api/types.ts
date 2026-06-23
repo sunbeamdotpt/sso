@@ -180,11 +180,17 @@ export interface IdentitySchema {
   schema: Record<string, unknown>;
 }
 
-export function findNodeByName(flow: UIFlow | undefined, name: string): UINode | undefined {
+export function findNodeByName(
+  flow: UIFlow | undefined,
+  name: string,
+): UINode | undefined {
   return flow?.nodes.find((n) => n.attributes.name === name);
 }
 
-export function findNodesByGroup(flow: UIFlow | undefined, group: string): UINode[] {
+export function findNodesByGroup(
+  flow: UIFlow | undefined,
+  group: string,
+): UINode[] {
   return flow?.nodes.filter((n) => n.group === group) ?? [];
 }
 
