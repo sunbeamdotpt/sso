@@ -196,10 +196,7 @@ async function mockLoginFlow(page: Page) {
   });
 
   await page.route("/api/self-service/login/browser", async (route) => {
-    await route.fulfill({
-      status: 303,
-      headers: { Location: `/login?flow=${flowId}` },
-    });
+    await route.fulfill(apiResponse(buildLoginFlow(flowId, action)));
   });
 }
 
@@ -302,10 +299,7 @@ async function mockRecoveryFlow(page: Page) {
   });
 
   await page.route("/api/self-service/recovery/browser", async (route) => {
-    await route.fulfill({
-      status: 303,
-      headers: { Location: `/recovery?flow=${flowId}` },
-    });
+    await route.fulfill(apiResponse(buildRecoveryFlow(flowId, action)));
   });
 }
 
