@@ -3,6 +3,10 @@ import { getAvailableMfaMethods, needsMfa, submitFlow } from "./flows.ts";
 import { mockLoginFlow } from "../test/mocks.ts";
 import type { LoginFlow } from "./types.ts";
 
+const mockFlow = mockLoginFlow as unknown as LoginFlow & {
+  ui: NonNullable<LoginFlow["ui"]>;
+};
+
 describe("submitFlow", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -23,7 +27,7 @@ describe("submitFlow", () => {
           }),
       }),
     );
-    const result = await submitFlow(mockLoginFlow as LoginFlow, {
+    const result = await submitFlow(mockFlow, {
       identifier: "test",
       password: "pass",
     }, "password");
@@ -48,7 +52,7 @@ describe("submitFlow", () => {
           }),
       }),
     );
-    const result = await submitFlow(mockLoginFlow as LoginFlow, {}, "code");
+    const result = await submitFlow(mockFlow, {}, "code");
     expect(result.success).toBe(true);
     expect(result.flow).toBeDefined();
   });
@@ -68,7 +72,7 @@ describe("submitFlow", () => {
           }),
       }),
     );
-    const result = await submitFlow(mockLoginFlow as LoginFlow, {
+    const result = await submitFlow(mockFlow, {
       identifier: "bad",
       password: "bad",
     }, "password");
@@ -88,7 +92,7 @@ describe("submitFlow", () => {
           }),
       }),
     );
-    const result = await submitFlow(mockLoginFlow as LoginFlow, {}, "password");
+    const result = await submitFlow(mockFlow, {}, "password");
     expect(result.success).toBe(false);
     expect(result.error).toBe("This session expired. Please try again.");
   });
@@ -105,7 +109,7 @@ describe("submitFlow", () => {
           }),
       }),
     );
-    const result = await submitFlow(mockLoginFlow as LoginFlow, {}, "password");
+    const result = await submitFlow(mockFlow, {}, "password");
     expect(result.success).toBe(false);
     expect(result.redirect_browser_to).toBe("https://example.com/redirect");
   });
@@ -120,7 +124,7 @@ describe("submitFlow", () => {
           Promise.resolve({ error: { message: "Internal server error" } }),
       }),
     );
-    const result = await submitFlow(mockLoginFlow as LoginFlow, {}, "password");
+    const result = await submitFlow(mockFlow, {}, "password");
     expect(result.success).toBe(false);
     expect(result.error).toBe("Internal server error");
   });
@@ -134,7 +138,7 @@ describe("submitFlow", () => {
         json: () => Promise.resolve({}),
       }),
     );
-    const result = await submitFlow(mockLoginFlow as LoginFlow, {}, "password");
+    const result = await submitFlow(mockFlow, {}, "password");
     expect(result.success).toBe(false);
     expect(result.error).toBe("HTTP 503");
   });
@@ -148,7 +152,7 @@ describe("submitFlow", () => {
         json: () => Promise.resolve({}),
       }),
     );
-    const result = await submitFlow(mockLoginFlow as LoginFlow, {}, "password");
+    const result = await submitFlow(mockFlow, {}, "password");
     expect(result.success).toBe(false);
     expect(result.error).toBe("Unexpected response from flow.");
   });

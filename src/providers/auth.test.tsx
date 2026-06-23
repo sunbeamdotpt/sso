@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
 import {
   AuthProvider,
   clearSession,
@@ -90,7 +91,7 @@ describe("validateSession", () => {
 describe("setUserSession", () => {
   it("stores identity in auth store", () => {
     setUserSession(
-      { id: "user-1", traits: { email: "test@example.com" } } as Identity,
+      { id: "user-1", traits: { email: "test@example.com" } } as unknown as Identity,
       "aal2",
     );
     expect(authActions.loginSuccess).toHaveBeenCalledWith(
