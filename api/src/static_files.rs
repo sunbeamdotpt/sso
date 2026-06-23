@@ -24,21 +24,32 @@ pub async fn static_handler(request: Request) -> Response {
     let path = request.uri().path().trim_start_matches('/');
     let path = if path.is_empty() { "index.html" } else { path };
 
-    match Dist::get(path).or_else(|| Dist::get("index.html")) {
-        Some(file) => {
-            let mime = mime_guess::from_path(path).first_or_octet_stream();
-            (
-                StatusCode::OK,
-                [(header::CONTENT_TYPE, mime.to_string())],
-                file.data,
-            )
-                .into_response()
-        }
-        None => (
-            StatusCode::NOT_FOUND,
-            [(header::CONTENT_TYPE, "text/plain")],
-            "not found",
-        )
-            .into_response(),
-    }
+    let (file, mime_path) = match Dist::get(path) {
+        Some(file) => (file, path),
+        None => match Dist::get("index.html") {
+            Some(file) => (file, "index.html"),
+            None => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    [(header::CONTENT_TYPE, "text/plain")],
+                    "not found",
+                )
+                    .into_response();
+            }
+        },
+    };
+
+    let mime = if mime_path == "index.html" {
+        mime_guess::mime::TEXT_HTML.to_string()
+    } else {
+        mime_guess::from_path(mime_path)
+            .first_or(mime_guess::mime::APPLICATION_OCTET_STREAM)
+            .to_string()
+    };
+    (
+        StatusCode::OK,
+        [(header::CONTENT_TYPE, mime)],
+        file.data,
+    )
+        .into_response()
 }
