@@ -102,9 +102,21 @@ function isRegistrationDisabled(): boolean {
   return import.meta.env.VITE_REGISTRATION_DISABLED === "true";
 }
 
+function getLoginBrowserUrl(returnTo?: string, refresh?: boolean): string {
+  const params = new URLSearchParams();
+  if (refresh) params.set("refresh", "true");
+  if (returnTo) params.set("return_to", returnTo);
+  const query = params.toString();
+  return `/api/self-service/login/browser${query ? `?${query}` : ""}`;
+}
+
 export function LoginFlowPage() {
-  const search = useSearch({ from: "/login" }) as { flow?: string };
+  const search = useSearch({ from: "/login" }) as {
+    flow?: string;
+    return_to?: string;
+  };
   const flowId = search.flow;
+  const returnTo = search.return_to;
 
   const [mode, setMode] = useState<PageMode>({
     type: "login",
@@ -134,7 +146,7 @@ export function LoginFlowPage() {
     setToast((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, status } = useAuth();
 
   const loginQuery = useRestQuery<LoginFlow>(
     api,
@@ -146,15 +158,14 @@ export function LoginFlowPage() {
 
   // Browser flows must be started by redirecting to Kratos so it can set the
   // anti-CSRF cookie before the SPA submits the form. Use refresh=true when the
-  // user already has a session so Kratos doesn't bounce them away.
+  // user already has a session so Kratos doesn't bounce them away. Preserve
+  // return_to so protected routes can send the user back after login.
   useEffect(() => {
-    if (!flowId && typeof window !== "undefined") {
-      const url = isAuthenticated
-        ? "/api/self-service/login/browser?refresh=true"
-        : "/api/self-service/login/browser";
-      window.location.href = url;
+    if (flowId || typeof window === "undefined" || status === "initializing") {
+      return;
     }
-  }, [flowId, isAuthenticated]);
+    window.location.href = getLoginBrowserUrl(returnTo, isAuthenticated);
+  }, [flowId, isAuthenticated, status, returnTo]);
 
   const currentLoginFlow = loginFlow ?? loginQuery.data ?? null;
   const availableMethods = currentLoginFlow
@@ -289,6 +300,10 @@ export function LoginFlowPage() {
       )}
       {loginQuery.error && !currentLoginFlow && mode.type === "login" && (
         <p className={errorText}>{loginQuery.error.message}</p>
+      )}
+
+      {!flowId && status !== "initializing" && !currentLoginFlow && (
+        <p className={statusText}>Redirecting…</p>
       )}
 
       {mode.type === "login" && currentLoginFlow && mode.step === "password" &&

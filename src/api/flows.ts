@@ -12,13 +12,17 @@ export interface FlowSubmitResult {
   redirect_browser_to?: string;
 }
 
-function getActionPath(action: string): string {
+function getSubmitUrl(action: string): string {
+  let path: string;
   try {
     const url = new URL(action);
-    return url.pathname + url.search;
+    path = url.pathname + url.search;
   } catch {
-    return action;
+    path = action;
   }
+  // In production Kratos' public base URL includes /api, so the action already
+  // points at the proxied path. In local dev it does not, so we prepend /api.
+  return path.startsWith("/api/") ? path : `/api${path}`;
 }
 
 /**
@@ -32,13 +36,11 @@ export async function submitFlow(
   body: Record<string, unknown>,
   method: string,
 ): Promise<FlowSubmitResult> {
-  const path = getActionPath(flow.ui.action);
-
   // Include CSRF token if present
   const csrfNode = findNodeByName(flow.ui, "csrf_token");
   const csrfToken = csrfNode?.attributes.value ?? "";
 
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(getSubmitUrl(flow.ui.action), {
     method: "POST",
     credentials: "same-origin",
     headers: {

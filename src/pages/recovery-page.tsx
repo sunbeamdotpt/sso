@@ -32,7 +32,7 @@ export function RecoveryPage() {
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, status } = useAuth();
 
   const recoveryQuery = useRestQuery<RecoveryFlow>(
     api,
@@ -47,10 +47,11 @@ export function RecoveryPage() {
   // the user is already authenticated or arrived via a recovery link.
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (status === "initializing") return;
     if (!flowId && !search.token && !isAuthenticated) {
       window.location.href = "/api/self-service/recovery/browser";
     }
-  }, [flowId, search.token, isAuthenticated]);
+  }, [flowId, search.token, isAuthenticated, status]);
 
   const currentFlow = recoveryFlow ?? recoveryQuery.data ?? null;
   const flowError = currentFlow ? getFlowError(currentFlow.ui) : undefined;
@@ -240,6 +241,17 @@ export function RecoveryPage() {
           <div className={css({ display: "flex", justifyContent: "center", padding: "32px" })}>
             <Spinner size="md" />
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!flowId && !search.token && status !== "initializing" && !isAuthenticated) {
+    return (
+      <div className={wrapper}>
+        <div className={card}>
+          <h1 className={title}>Reset your password</h1>
+          <p className={subtitle}>Redirecting…</p>
         </div>
       </div>
     );
