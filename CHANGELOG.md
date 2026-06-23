@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc8] - 2026-06-23
+
+### Fixed
+
+- Restored Kratos browser-endpoint redirects for `/login` and `/recovery` with proper handling for authenticated users (`refresh=true`) so CSRF cookies are set without redirect loops.
+- Preserved `return_to` through the Kratos login redirect so protected routes can send users back after authentication.
+- Made flow submission accept Kratos action URLs that already include the `/api/` prefix, fixing form posts when `serve.public.base_url` includes `/api`.
+- Added explicit redirecting states while the browser is sent to Kratos to initialize a flow.
+
 ## [1.0.0-rc7] - 2026-06-23
 
 ### Fixed
@@ -114,7 +123,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disabled Kratos `leak_sensitive_values` and Hydra `OAUTH2_EXPOSE_INTERNAL_ERRORS` in production configs.
 - Dockerfile exposed port aligned with the application (`3102`) and image runs as non-root distroless.
 
-[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc7...HEAD
+[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc8...HEAD
+[1.0.0-rc8]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc8
 [1.0.0-rc7]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc7
 [1.0.0-rc6]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc6
 [1.0.0-rc5]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc5
