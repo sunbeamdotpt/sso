@@ -195,6 +195,15 @@ export function RecoveryPage() {
         return;
       }
 
+      // Kratos v25+ returns a settings flow redirect after the recovery code is
+      // verified. We need a fresh browser-initiated settings flow so Kratos sets
+      // the CSRF cookie before the SPA fetches the flow JSON; otherwise the
+      // settings form POST fails with a CSRF mismatch.
+      if (result.redirect_browser_to) {
+        globalThis.location.href = "/api/self-service/settings/browser";
+        return;
+      }
+
       if (result.error) {
         if (result.error === "This session expired. Please try again.") {
           setRecoveryFlow(null);

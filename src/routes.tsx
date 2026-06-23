@@ -11,6 +11,7 @@ import { PostLogoutPage } from "./pages/post-logout-page.tsx";
 import { ErrorPage } from "./pages/error-page.tsx";
 import { DevicePage } from "./pages/device-page.tsx";
 import { RecoveryPage } from "./pages/recovery-page.tsx";
+import { SettingsPage } from "./pages/settings-page.tsx";
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   // Keep the login page renderable even if already authenticated;
@@ -72,6 +73,16 @@ const recoveryRoute = createRoute({
   ),
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings",
+  component: () => (
+    <PublicRoute>
+      <SettingsPage />
+    </PublicRoute>
+  ),
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   consentRoute,
@@ -80,6 +91,7 @@ const routeTree = rootRoute.addChildren([
   errorRoute,
   deviceRoute,
   recoveryRoute,
+  settingsRoute,
 ]);
 
 export const router = createRouter({

@@ -197,3 +197,37 @@ export async function updateIdentityTraits(
 export async function deleteAllSessions(identityId: string): Promise<void> {
   await adminFetch(`/identities/${identityId}/sessions`, { method: "DELETE" });
 }
+
+/**
+ * Read the most recent recovery code sent to an email address from the
+ * Kratos courier_messages table.
+ */
+export async function getLatestRecoveryCode(email: string): Promise<string> {
+  const cmd = new Deno.Command("docker", {
+    args: [
+      "exec",
+      "sso-postgres-1",
+      "psql",
+      "-U",
+      "sunbeam",
+      "-d",
+      "kratos",
+      "-t",
+      "-c",
+      `SELECT body FROM courier_messages WHERE recipient='${email}' ORDER BY created_at DESC LIMIT 1;`,
+    ],
+    stdout: "piped",
+    stderr: "piped",
+  });
+  const { code, stdout, stderr } = await cmd.output();
+  if (code !== 0) {
+    const err = new TextDecoder().decode(stderr);
+    throw new Error(`Failed to read recovery code: ${err}`);
+  }
+  const body = new TextDecoder().decode(stdout);
+  const match = body.match(/\b\d{6}\b/);
+  if (!match) {
+    throw new Error(`No recovery code found in courier body: ${body}`);
+  }
+  return match[0];
+}

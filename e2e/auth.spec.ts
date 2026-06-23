@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   cleanupAllIdentities,
   createAuthenticatedIdentity,
+  getLatestRecoveryCode,
 } from "./utils/kratos.ts";
 
 /** Small delay between tests that hit Kratos SQLite to avoid "database is locked". */
@@ -86,6 +87,41 @@ test.describe("Auth Flows", () => {
     await page.getByRole("button", { name: /Send Recovery Code/i }).click();
 
     await expect(page.getByText(/Enter the recovery code/i)).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+
+  test("full account recovery resets password", async ({ page }) => {
+    const email = `recovery-full-${Date.now()}@sunbeam.pt`;
+    const oldPassword = "xK9#mQ2$pL7@vN4&wR1!";
+    const newPassword = "yL8#nP4$qM9@bK2&xT3!";
+    await createAuthenticatedIdentity(email, oldPassword);
+    await sqliteDelay();
+
+    await page.goto("/login");
+    await page.getByRole("link", { name: /Forgot your password/i }).click();
+
+    await expect(page).toHaveURL("/recovery");
+    await page.getByLabel(/Email/i).fill(email);
+    await page.getByRole("button", { name: /Send Recovery Code/i }).click();
+
+    await expect(page.getByText(/Enter the recovery code/i)).toBeVisible({
+      timeout: 10_000,
+    });
+
+    const code = await getLatestRecoveryCode(email);
+    await page.getByLabel(/Recovery code/i).fill(code);
+    await page.getByRole("button", { name: /Verify Code/i }).click();
+
+    // Kratos returns a privileged settings flow after the code is verified.
+    await expect(page).toHaveURL(/\/settings\?flow=/, { timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Set a new password" }))
+      .toBeVisible();
+
+    await page.getByLabel(/New password/i).fill(newPassword);
+    await page.getByRole("button", { name: /Update Password/i }).click();
+
+    await expect(page.getByText(/Password updated/i)).toBeVisible({
       timeout: 10_000,
     });
   });

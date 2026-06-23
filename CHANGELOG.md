@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc10] - 2026-06-23
+
+### Fixed
+
+- CSP now allows the inline theme script in `index.html` (`sha256-p9zWcqCFG7c70MXUvDmtqVRotRuoLSD5Dpv46xu+n/o=`), which was blocked in production.
+- Account recovery code submission no longer shows an empty 422 error; the SPA now redirects to a fresh Kratos settings browser flow so the user can set a new password.
+- Added a `/settings` page to handle the post-recovery settings flow.
+- Fixed production Kratos `settings.ui_url` in `../sbbb/base/ory/kratos-values.yaml` to point to `/settings` instead of `/login`.
+
 ## [1.0.0-rc9] - 2026-06-23
 
 ### Changed
@@ -137,7 +146,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disabled Kratos `leak_sensitive_values` and Hydra `OAUTH2_EXPOSE_INTERNAL_ERRORS` in production configs.
 - Dockerfile exposed port aligned with the application (`3102`) and image runs as non-root distroless.
 
-[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc9...HEAD
+[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc10...HEAD
+[1.0.0-rc10]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc10
 [1.0.0-rc9]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc9
 [1.0.0-rc8]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc8
 [1.0.0-rc7]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc7
