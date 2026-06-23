@@ -25,11 +25,12 @@ test.describe("Page state screenshots", () => {
       fullPage: true,
     });
 
-    await page.getByRole("button", { name: /Forgot password/i }).click();
-    await expect(page.getByRole("heading", { name: "Forgot Password" }))
+    await page.getByRole("link", { name: /Forgot your password/i }).click();
+    await expect(page).toHaveURL("/recovery");
+    await expect(page.getByRole("heading", { name: "Reset your password" }))
       .toBeVisible();
     await page.screenshot({
-      path: `${OUT}/login-recovery-email.png`,
+      path: `${OUT}/recovery-email.png`,
       fullPage: true,
     });
 

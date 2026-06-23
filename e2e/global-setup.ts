@@ -15,6 +15,11 @@ import {
  * across runs.
  */
 export default async function globalSetup(_config: FullConfig) {
+  if (Deno.env.get("SKIP_GLOBAL_SETUP") === "1") {
+    console.log("[global-setup] SKIP_GLOBAL_SETUP set; skipping Kratos seeding");
+    return;
+  }
+
   // Start from a clean slate (preserves dev identity)
   await cleanupAllIdentities();
 

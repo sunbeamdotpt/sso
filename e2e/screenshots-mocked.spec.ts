@@ -15,7 +15,7 @@ function apiResponse(body: unknown, status = 200) {
 }
 
 function mockFlowAction(path: string, flowId: string) {
-  return `/api${path}?flow=${flowId}`;
+  return `http://localhost:4433${path}?flow=${flowId}`;
 }
 
 async function mockAnonymousSession(page: Page) {
@@ -27,6 +27,60 @@ async function mockAnonymousSession(page: Page) {
       ),
     );
   });
+}
+
+function buildLoginFlow(flowId: string, action: string) {
+  return {
+    id: flowId,
+    type: "login",
+    ui: {
+      action,
+      method: "POST",
+      nodes: [
+        {
+          type: "input",
+          group: "default",
+          attributes: { name: "csrf_token", type: "hidden", value: "csrf" },
+        },
+        {
+          type: "input",
+          group: "default",
+          attributes: { name: "identifier", type: "email", value: "" },
+        },
+        {
+          type: "input",
+          group: "default",
+          attributes: { name: "password", type: "password", value: "" },
+        },
+        {
+          type: "input",
+          group: "password",
+          attributes: { name: "method", type: "submit", value: "password" },
+        },
+        {
+          type: "input",
+          group: "oidc",
+          attributes: {
+            name: "provider",
+            type: "submit",
+            value: "discord",
+          },
+          meta: { label: { text: "Sign in with Discord", type: "info" } },
+        },
+        {
+          type: "input",
+          group: "oidc",
+          attributes: {
+            name: "provider",
+            type: "submit",
+            value: "github",
+          },
+          meta: { label: { text: "Sign in with GitHub", type: "info" } },
+        },
+      ],
+      messages: [],
+    },
+  };
 }
 
 async function mockLoginFlow(page: Page) {
@@ -137,39 +191,46 @@ async function mockLoginFlow(page: Page) {
     await route.continue();
   });
 
-  await page.route("/api/self-service/login/browser", async (route) => {
-    await route.fulfill(apiResponse({
-      id: flowId,
-      type: "login",
-      ui: {
-        action,
-        method: "POST",
-        nodes: [
-          {
-            type: "input",
-            group: "default",
-            attributes: { name: "csrf_token", type: "hidden", value: "csrf" },
-          },
-          {
-            type: "input",
-            group: "default",
-            attributes: { name: "identifier", type: "email", value: "" },
-          },
-          {
-            type: "input",
-            group: "default",
-            attributes: { name: "password", type: "password", value: "" },
-          },
-          {
-            type: "input",
-            group: "password",
-            attributes: { name: "method", type: "submit", value: "password" },
-          },
-        ],
-        messages: [],
-      },
-    }));
+  await page.route(/\/api\/self-service\/login\/flows(\?.*)?$/, async (route) => {
+    await route.fulfill(apiResponse(buildLoginFlow(flowId, action)));
   });
+
+  await page.route("/api/self-service/login/browser", async (route) => {
+    await route.fulfill({
+      status: 303,
+      headers: { Location: `/login?flow=${flowId}` },
+    });
+  });
+}
+
+function buildRecoveryFlow(flowId: string, action: string) {
+  return {
+    id: flowId,
+    type: "recovery",
+    state: "choose_method",
+    ui: {
+      action,
+      method: "POST",
+      nodes: [
+        {
+          type: "input",
+          group: "default",
+          attributes: { name: "csrf_token", type: "hidden", value: "csrf" },
+        },
+        {
+          type: "input",
+          group: "code",
+          attributes: { name: "email", type: "email", value: "" },
+        },
+        {
+          type: "input",
+          group: "code",
+          attributes: { name: "method", type: "submit", value: "code" },
+        },
+      ],
+      messages: [],
+    },
+  };
 }
 
 async function mockRecoveryFlow(page: Page) {
@@ -211,10 +272,24 @@ async function mockRecoveryFlow(page: Page) {
 
     if (postBody?.method === "code" && postBody.code) {
       return route.fulfill(apiResponse({
-        session: {
-          active: true,
-          identity: { id: "user-1", traits: { email: "recovery@sunbeam.pt" } },
-          authenticator_assurance_level: "aal1",
+        id: flowId,
+        type: "recovery",
+        state: "passed_challenge",
+        ui: {
+          action,
+          method: "POST",
+          nodes: [
+            {
+              type: "input",
+              group: "default",
+              attributes: { name: "csrf_token", type: "hidden", value: "csrf" },
+            },
+          ],
+          messages: [{
+            type: "info",
+            text: "You successfully recovered your account.",
+            id: 1060001,
+          }],
         },
       }));
     }
@@ -222,34 +297,15 @@ async function mockRecoveryFlow(page: Page) {
     await route.continue();
   });
 
+  await page.route(/\/api\/self-service\/recovery\/flows(\?.*)?$/, async (route) => {
+    await route.fulfill(apiResponse(buildRecoveryFlow(flowId, action)));
+  });
+
   await page.route("/api/self-service/recovery/browser", async (route) => {
-    await route.fulfill(apiResponse({
-      id: flowId,
-      type: "recovery",
-      state: "choose_method",
-      ui: {
-        action,
-        method: "POST",
-        nodes: [
-          {
-            type: "input",
-            group: "default",
-            attributes: { name: "csrf_token", type: "hidden", value: "csrf" },
-          },
-          {
-            type: "input",
-            group: "code",
-            attributes: { name: "email", type: "email", value: "" },
-          },
-          {
-            type: "input",
-            group: "code",
-            attributes: { name: "method", type: "submit", value: "code" },
-          },
-        ],
-        messages: [],
-      },
-    }));
+    await route.fulfill({
+      status: 303,
+      headers: { Location: `/recovery?flow=${flowId}` },
+    });
   });
 }
 
@@ -383,35 +439,111 @@ test.describe("Mocked page state screenshots", () => {
     });
   });
 
-  test("/login recovery states", async ({ page }) => {
+  test("/recovery states", async ({ page }) => {
     await mockAnonymousSession(page);
-    await mockLoginFlow(page);
     await mockRecoveryFlow(page);
-    await page.goto("/login");
-    await page.getByRole("button", { name: /Forgot password/i }).click();
-    await expect(page.getByRole("heading", { name: "Forgot Password" }))
+    await page.goto("/recovery");
+    await expect(page.getByRole("heading", { name: "Reset your password" }))
       .toBeVisible();
     await page.screenshot({
-      path: `${OUT}/login-recovery-email.png`,
+      path: `${OUT}/recovery-email.png`,
       fullPage: true,
     });
 
     await page.getByLabel(/Email/i).fill("recovery@sunbeam.pt");
-    await page.getByRole("button", { name: /Send Reset Code/i }).click();
-    await expect(page.getByRole("heading", { name: "Enter Recovery Code" }))
-      .toBeVisible();
-    await page.screenshot({
-      path: `${OUT}/login-recovery-code.png`,
-      fullPage: true,
-    });
-
-    await page.locator("input[placeholder='000000']").fill("123456");
-    await page.getByRole("button", { name: /Verify/i }).click();
-    await expect(page.getByText(/Password reset successful/i)).toBeVisible({
+    await page.getByRole("button", { name: /Send Recovery Code/i }).click();
+    await expect(page.getByText(/Enter the recovery code/i)).toBeVisible({
       timeout: 10_000,
     });
     await page.screenshot({
-      path: `${OUT}/login-recovery-success.png`,
+      path: `${OUT}/recovery-code.png`,
+      fullPage: true,
+    });
+
+    await page.getByPlaceholder("000000").fill("123456");
+    await page.getByRole("button", { name: /Verify Code/i }).click();
+    await expect(page.getByRole("heading", { name: "Password reset" }))
+      .toBeVisible({ timeout: 10_000 });
+    await page.screenshot({
+      path: `${OUT}/recovery-success.png`,
+      fullPage: true,
+    });
+  });
+
+  test("/recovery error state", async ({ page }) => {
+    await mockAnonymousSession(page);
+    await mockRecoveryFlow(page);
+
+    const errorFlowId = "recovery-error-flow";
+    const errorAction = mockFlowAction("/self-service/recovery", errorFlowId);
+    await page.route(/\/api\/self-service\/recovery(\?.*)?$/, async (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      const postBody = route.request().postDataJSON();
+      if (
+        postBody?.method === "code" &&
+        postBody.email === "unknown@sunbeam.pt"
+      ) {
+        return route.fulfill(apiResponse({
+          id: errorFlowId,
+          type: "recovery",
+          state: "choose_method",
+          ui: {
+            action: errorAction,
+            method: "POST",
+            nodes: [
+              {
+                type: "input",
+                group: "default",
+                attributes: {
+                  name: "csrf_token",
+                  type: "hidden",
+                  value: "csrf",
+                },
+              },
+              {
+                type: "input",
+                group: "code",
+                attributes: { name: "email", type: "email", value: "" },
+              },
+            ],
+            messages: [{
+              type: "error",
+              text:
+                "You cannot recover this account because it does not exist.",
+              id: 4000001,
+            }],
+          },
+        }, 400));
+      }
+      await route.continue();
+    });
+
+    await page.goto("/recovery");
+    await page.getByLabel(/Email/i).fill("unknown@sunbeam.pt");
+    await page.getByRole("button", { name: /Send Recovery Code/i }).click();
+    await expect(page.getByRole("alert")).toContainText(
+      "You cannot recover this account because it does not exist.",
+      { timeout: 10_000 },
+    );
+    await page.screenshot({
+      path: `${OUT}/recovery-error.png`,
+      fullPage: true,
+    });
+  });
+
+  test("/login social sign-in buttons", async ({ page }) => {
+    await mockAnonymousSession(page);
+    await mockLoginFlow(page);
+    await page.goto("/login");
+    await settle(page);
+    await expect(
+      page.getByRole("button", { name: /Discord/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /GitHub/i }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: `${OUT}/login-social.png`,
       fullPage: true,
     });
   });

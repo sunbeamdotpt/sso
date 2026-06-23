@@ -67,7 +67,7 @@ export async function getIdentity(id: string): Promise<Identity> {
   return res.json();
 }
 
-async function delay(ms: number) {
+function delay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
@@ -180,7 +180,7 @@ export async function cleanupAllIdentities(): Promise<void> {
   }
 }
 
-export async function createIdentityWithPassword(
+export function createIdentityWithPassword(
   email: string,
   password: string,
 ): Promise<{ identity: Identity; sessionToken: string }> {
