@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc7] - 2026-06-23
+
+### Fixed
+
+- Restored redirect to Kratos browser endpoints for `/login` and `/recovery` so the anti-CSRF cookie is set before form submission.
+- Authenticated users navigating to `/login` are redirected with `refresh=true` so Kratos does not bounce them away.
+- Recovery page no longer shows the reset form when the user is already authenticated.
+
 ## [1.0.0-rc6] - 2026-06-23
 
 ### Fixed
@@ -106,7 +114,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disabled Kratos `leak_sensitive_values` and Hydra `OAUTH2_EXPOSE_INTERNAL_ERRORS` in production configs.
 - Dockerfile exposed port aligned with the application (`3102`) and image runs as non-root distroless.
 
-[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc6...HEAD
+[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc7...HEAD
+[1.0.0-rc7]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc7
 [1.0.0-rc6]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc6
 [1.0.0-rc5]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc5
 [1.0.0-rc4]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc4
