@@ -30,6 +30,7 @@
     "@sunbeam/g2v/router": "npm:@jsr/sunbeam__g2v@^0.3.0/router",
     "@sunbeam/beam-ui": "npm:@jsr/sunbeam__beam-ui@^0.11.0",
     "@sunbeam/beam-ui/preset": "npm:@jsr/sunbeam__beam-ui@^0.11.0/preset",
+    "@primer/octicons-react": "npm:@primer/octicons-react@^19.0.0",
     "playwright": "npm:playwright@^1.60.0",
     "react": "npm:react@^19.0.0",
     "react/jsx-runtime": "npm:react@^19.0.0/jsx-runtime",

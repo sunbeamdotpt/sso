@@ -9,6 +9,7 @@
     "npm:@legendapp/state@1": "1.11.3_react@19.2.6",
     "npm:@pandacss/dev@^1.9.1": "1.11.1_typescript@5.9.3",
     "npm:@playwright/test@1.60.0": "1.60.0",
+    "npm:@primer/octicons-react@19": "19.28.1_react@19.2.6",
     "npm:@tanstack/react-query@^5.59.0": "5.100.11_react@19.2.6",
     "npm:@tanstack/react-router@1": "1.170.5_react@19.2.6_react-dom@19.2.6__react@19.2.6",
     "npm:@testing-library/jest-dom@6": "6.9.1",
@@ -1473,6 +1474,12 @@
         "playwright"
       ],
       "bin": true
+    },
+    "@primer/octicons-react@19.28.1_react@19.2.6": {
+      "integrity": "sha512-ZADBMOPk6qoXXH3GEQuf3fYdhr9wCShgeJRGXsr5liaZG8P+hXGEQAy/eg7/FZjFIu8aRCmx+UBKmHvNTp7zpw==",
+      "dependencies": [
+        "react"
+      ]
     },
     "@protobufjs/aspromise@1.1.2": {
       "integrity": "sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ=="
@@ -5694,6 +5701,7 @@
       "npm:@legendapp/state@1",
       "npm:@pandacss/dev@^1.9.1",
       "npm:@playwright/test@1.60.0",
+      "npm:@primer/octicons-react@19",
       "npm:@tanstack/react-query@^5.59.0",
       "npm:@tanstack/react-router@1",
       "npm:@testing-library/jest-dom@6",
