@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc6] - 2026-06-23
+
+### Fixed
+
+- Login page no longer redirects the browser to `/api/self-service/login/browser`; it fetches the flow via the JSON API, fixing redirect loops and broken manual browsing.
+- Recovery page no longer redirects the browser to `/api/self-service/recovery/browser`; it fetches the flow via the JSON API.
+
 ## [1.0.0-rc5] - 2026-06-23
 
 ### Added
@@ -99,7 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disabled Kratos `leak_sensitive_values` and Hydra `OAUTH2_EXPOSE_INTERNAL_ERRORS` in production configs.
 - Dockerfile exposed port aligned with the application (`3102`) and image runs as non-root distroless.
 
-[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc5...HEAD
+[Unreleased]: https://github.com/sunbeamdotpt/sso/compare/v1.0.0-rc6...HEAD
+[1.0.0-rc6]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc6
 [1.0.0-rc5]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc5
 [1.0.0-rc4]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc4
 [1.0.0-rc3]: https://github.com/sunbeamdotpt/sso/releases/tag/v1.0.0-rc3

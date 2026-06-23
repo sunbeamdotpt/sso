@@ -75,8 +75,8 @@ on every `v*` tag.
 ## Release
 
 ```bash
-git tag -a v1.0.0-rc5 -m "v1.0.0-rc5"
-git push origin v1.0.0-rc5
+git tag -a v1.0.0-rc6 -m "v1.0.0-rc6"
+git push origin v1.0.0-rc6
 ```
 
 Then monitor the `Release Container` workflow in GitHub Actions.

@@ -1,6 +1,6 @@
 {
   "name": "@sunbeam/sso-ui",
-  "version": "1.0.0-rc5",
+  "version": "1.0.0-rc6",
   "exports": "./src/main.tsx",
   "tasks": {
     "install": "deno install --allow-scripts",
