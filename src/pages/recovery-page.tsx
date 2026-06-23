@@ -11,11 +11,11 @@ import type { RecoveryFlow } from "../api/types.ts";
 type RecoveryStep = "email" | "code" | "password" | "submitting" | "success";
 
 function hasPasswordNode(flow: RecoveryFlow | null): boolean {
-  return flow?.ui?.nodes?.some((n) => n.group === "password" || n.attributes.name === "password") ?? false;
+  return flow?.ui?.nodes?.some((n) => n.attributes.name === "password") ?? false;
 }
 
 function hasCodeNode(flow: RecoveryFlow | null): boolean {
-  return flow?.ui?.nodes?.some((n) => n.group === "code" || n.attributes.name === "code") ?? false;
+  return flow?.ui?.nodes?.some((n) => n.attributes.name === "code") ?? false;
 }
 
 export function RecoveryPage() {
@@ -34,13 +34,22 @@ export function RecoveryPage() {
 
   const recoveryQuery = useRestQuery<RecoveryFlow>(
     api,
-    flowId ? `/self-service/recovery/flows?id=${flowId}` : "/self-service/recovery/browser",
-    { queryKey: flowId ? ["recovery-flow", flowId] : ["recovery-flow"] },
+    flowId ? `/self-service/recovery/flows?id=${flowId}` : "/self-service/recovery/flows",
+    { queryKey: flowId ? ["recovery-flow", flowId] : ["recovery-flow"], enabled: !!flowId },
   );
 
   const currentFlow = recoveryFlow ?? recoveryQuery.data ?? null;
   const flowError = currentFlow ? getFlowError(currentFlow.ui) : undefined;
   const isSubmitting = step === "submitting";
+
+  // Browser flows must be started by redirecting to Kratos so it can set the
+  // anti-CSRF cookie before the SPA submits the form.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!flowId && !search.token) {
+      window.location.href = "/api/self-service/recovery/browser";
+    }
+  }, [flowId, search.token]);
 
   // If a recovery link brought the user here with a token, submit it immediately
   // so Kratos advances to the password-reset step.
@@ -79,19 +88,20 @@ export function RecoveryPage() {
       });
   }, [search.token, currentFlow?.ui?.action]);
 
-  // Determine initial step from the fetched flow when not using a link.
+  // Determine the initial step from the fetched flow when not using a link.
+  // Only run while we are still on the email step so submission handlers can
+  // advance the user to code/password/success without being overwritten.
   useEffect(() => {
     if (search.token) return;
     if (!currentFlow) return;
+    if (step !== "email") return;
 
     if (hasPasswordNode(currentFlow)) {
       setStep("password");
     } else if (hasCodeNode(currentFlow)) {
       setStep("code");
-    } else {
-      setStep("email");
     }
-  }, [currentFlow, search.token]);
+  }, [currentFlow, search.token, step]);
 
   const handleEmailSubmit = useCallback(
     async (e: React.FormEvent) => {
