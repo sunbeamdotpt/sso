@@ -55,10 +55,10 @@ selfservice:
 
   flows:
     error:
-      ui_url: http://localhost:5175/auth/error
+      ui_url: http://localhost:5175/error
 
     settings:
-      ui_url: http://localhost:5175/account/security
+      ui_url: http://localhost:5175/settings
       privileged_session_max_age: 15m
       required_aal: highest_available
 
@@ -70,17 +70,17 @@ selfservice:
 
     verification:
       enabled: true
-      ui_url: http://localhost:5175/auth/verification
+      ui_url: http://localhost:5175/verification
       after:
-        default_browser_return_url: http://localhost:5175/account/profile
+        default_browser_return_url: http://localhost:5175/
       notify_unknown_recipients: false
 
     logout:
       after:
-        default_browser_return_url: http://localhost:5175/auth/login
+        default_browser_return_url: http://localhost:5175/login
 
     login:
-      ui_url: http://localhost:5175/auth/login
+      ui_url: http://localhost:5175/login
       lifespan: 10m
       after:
         password:
@@ -89,7 +89,7 @@ selfservice:
 
     registration:
       enabled: false
-      ui_url: http://localhost:5175/auth/register
+      ui_url: http://localhost:5175/registration
 
 log:
   level: info
