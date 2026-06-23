@@ -301,7 +301,7 @@ async function mockRecoveryFlow(page: Page) {
     await route.fulfill(apiResponse(buildRecoveryFlow(flowId, action)));
   });
 
-  await page.route("/api/self-service/recovery/browser", async (route) => {
+  await page.route(/\/api\/self-service\/recovery\/browser(\?.*)?$/, async (route) => {
     await route.fulfill({
       status: 303,
       headers: { Location: `/recovery?flow=${flowId}` },
