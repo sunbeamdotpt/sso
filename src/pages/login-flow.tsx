@@ -1,6 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearch } from "@tanstack/react-router";
-import { useRestQuery } from "@sunbeam/g2v";
+import { useAuth, useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
 import {
   Button,
@@ -134,13 +134,27 @@ export function LoginFlowPage() {
     setToast((prev) => ({ ...prev, visible: false }));
   }, []);
 
+  const { isAuthenticated } = useAuth();
+
   const loginQuery = useRestQuery<LoginFlow>(
     api,
     flowId
       ? `/self-service/login/flows?id=${flowId}`
-      : "/self-service/login/browser",
-    { queryKey: flowId ? ["login-flow", flowId] : ["login-flow"] },
+      : "/self-service/login/flows",
+    { queryKey: flowId ? ["login-flow", flowId] : ["login-flow"], enabled: !!flowId },
   );
+
+  // Browser flows must be started by redirecting to Kratos so it can set the
+  // anti-CSRF cookie before the SPA submits the form. Use refresh=true when the
+  // user already has a session so Kratos doesn't bounce them away.
+  useEffect(() => {
+    if (!flowId && typeof window !== "undefined") {
+      const url = isAuthenticated
+        ? "/api/self-service/login/browser?refresh=true"
+        : "/api/self-service/login/browser";
+      window.location.href = url;
+    }
+  }, [flowId, isAuthenticated]);
 
   const currentLoginFlow = loginFlow ?? loginQuery.data ?? null;
   const availableMethods = currentLoginFlow
