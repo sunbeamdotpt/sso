@@ -11,6 +11,7 @@ import { resolve } from "node:path";
 export default defineConfig({
   testDir: "./e2e",
   testMatch: /\.spec\.ts$/,
+  testIgnore: /\.prod\.spec\.ts$/,
   fullyParallel: false,
   forbidOnly: !!process.env["CI"],
   retries: process.env["CI"] ? 2 : 0,

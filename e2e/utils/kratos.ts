@@ -2,9 +2,34 @@
  * Kratos admin API helpers for E2E test setup.
  *
  * All operations hit the admin port (4434) which is unrestricted.
+ *
+ * This module is intentionally runtime-agnostic: it runs inside the Playwright
+ * Node runner for E2E tests and is also imported by Deno-based tooling (e.g.
+ * e2e/prod-server.ts helpers). Use getEnv() instead of Deno.env/process.env
+ * directly.
  */
 
-const ADMIN_BASE = "http://localhost:4434/admin";
+function getEnv(name: string): string | undefined {
+  if (
+    typeof globalThis !== "undefined" &&
+    "process" in globalThis &&
+    // @ts-ignore Node runtime
+    globalThis.process?.env
+  ) {
+    // @ts-ignore Node runtime
+    return globalThis.process.env[name];
+  }
+  if (typeof globalThis !== "undefined" && "Deno" in globalThis) {
+    // @ts-ignore Deno runtime
+    return globalThis.Deno.env.get(name);
+  }
+  return undefined;
+}
+
+const ADMIN_BASE = `${
+  getEnv("KRATOS_ADMIN_URL") ?? "http://localhost:4434"
+}/admin`;
+const PUBLIC_BASE = getEnv("KRATOS_PUBLIC_URL") ?? "http://localhost:4433";
 
 export interface Identity {
   id: string;
@@ -106,7 +131,7 @@ export async function createAuthenticatedIdentity(
 
       // 2. Create login API flow
       const flowRes = await fetch(
-        "http://localhost:4433/self-service/login/api",
+        `${PUBLIC_BASE}/self-service/login/api`,
         { headers: { Accept: "application/json" } },
       );
       const flow = await flowRes.json() as {
@@ -121,7 +146,7 @@ export async function createAuthenticatedIdentity(
       //    running during e2e, so we replace the origin with localhost:4433.
       const flowId = flowRes.headers.get("X-Flow-Id") ??
         new URL(flow.ui.action).searchParams.get("flow") ?? "";
-      const submitUrl = `http://localhost:4433/self-service/login?flow=${flowId}`;
+      const submitUrl = `${PUBLIC_BASE}/self-service/login?flow=${flowId}`;
       const submitRes = await fetch(submitUrl, {
         method: "POST",
         headers: {
@@ -198,36 +223,78 @@ export async function deleteAllSessions(identityId: string): Promise<void> {
   await adminFetch(`/identities/${identityId}/sessions`, { method: "DELETE" });
 }
 
+async function runShell(
+  command: string,
+  args: string[],
+): Promise<{ code: number; stdout: string; stderr: string }> {
+  if (
+    typeof globalThis !== "undefined" &&
+    "process" in globalThis
+  ) {
+    const { execFile } = await import("node:child_process");
+    return new Promise((resolve, reject) => {
+      execFile(
+        command,
+        args,
+        { encoding: "utf-8" },
+        (error, stdout, stderr) => {
+          if (error && !stderr) {
+            reject(error);
+          } else {
+            resolve({
+              code: error?.code ?? 0,
+              stdout: stdout ?? "",
+              stderr: stderr ?? "",
+            });
+          }
+        },
+      );
+    });
+  }
+
+  if (typeof globalThis !== "undefined" && "Deno" in globalThis) {
+    // @ts-ignore Deno runtime
+    const cmd = new globalThis.Deno.Command(command, {
+      args,
+      stdout: "piped",
+      stderr: "piped",
+    });
+    // @ts-ignore Deno runtime
+    const { code, stdout, stderr } = await cmd.output();
+    return {
+      code,
+      stdout: new TextDecoder().decode(stdout),
+      stderr: new TextDecoder().decode(stderr),
+    };
+  }
+
+  throw new Error("Unsupported runtime for runShell");
+}
+
 /**
  * Read the most recent recovery code sent to an email address from the
  * Kratos courier_messages table.
  */
 export async function getLatestRecoveryCode(email: string): Promise<string> {
-  const cmd = new Deno.Command("docker", {
-    args: [
-      "exec",
-      "sso-postgres-1",
-      "psql",
-      "-U",
-      "sunbeam",
-      "-d",
-      "kratos",
-      "-t",
-      "-c",
-      `SELECT body FROM courier_messages WHERE recipient='${email}' ORDER BY created_at DESC LIMIT 1;`,
-    ],
-    stdout: "piped",
-    stderr: "piped",
-  });
-  const { code, stdout, stderr } = await cmd.output();
+  const postgresContainer = getEnv("POSTGRES_CONTAINER") ?? "sso-postgres-1";
+  const { code, stdout, stderr } = await runShell("docker", [
+    "exec",
+    postgresContainer,
+    "psql",
+    "-U",
+    "sunbeam",
+    "-d",
+    "kratos",
+    "-t",
+    "-c",
+    `SELECT body FROM courier_messages WHERE recipient='${email}' ORDER BY created_at DESC LIMIT 1;`,
+  ]);
   if (code !== 0) {
-    const err = new TextDecoder().decode(stderr);
-    throw new Error(`Failed to read recovery code: ${err}`);
+    throw new Error(`Failed to read recovery code: ${stderr}`);
   }
-  const body = new TextDecoder().decode(stdout);
-  const match = body.match(/\b\d{6}\b/);
+  const match = stdout.match(/\b\d{6}\b/);
   if (!match) {
-    throw new Error(`No recovery code found in courier body: ${body}`);
+    throw new Error(`No recovery code found in courier body: ${stdout}`);
   }
   return match[0];
 }

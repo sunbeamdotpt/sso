@@ -2442,7 +2442,7 @@ dependencies = [
 
 [[package]]
 name = "sso"
-version = "1.0.0-rc11"
+version = "1.0.0-rc14"
 dependencies = [
  "anyhow",
  "axum",

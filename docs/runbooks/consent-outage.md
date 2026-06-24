@@ -4,9 +4,11 @@ Applies to the OAuth2/OIDC consent flow handled by the SSO portal and Hydra.
 
 ## Symptoms
 
-- Users authenticate successfully but the OAuth client (e.g., Sunbeam CLI) fails.
+- Users authenticate successfully but the OAuth client (e.g., Sunbeam CLI)
+  fails.
 - `/consent` returns 4xx/5xx or a generic error page.
-- Hydra logs show `consent_challenge was used twice` or `login_challenge was used twice`.
+- Hydra logs show `consent_challenge was used twice` or
+  `login_challenge was used twice`.
 - Alert `HydraHighErrorRate` is firing.
 
 ## Immediate Checks
@@ -28,12 +30,12 @@ Applies to the OAuth2/OIDC consent flow handled by the SSO portal and Hydra.
 
 ## Common Causes & Actions
 
-| Cause | Signs | Action |
-|-------|-------|--------|
-| Stale consent challenge | SSO logs `challenge not found` | This is usually a user double-submit; instruct user to restart the flow. |
-| Missing requested scope | Hydra rejects consent acceptance | Verify the portal only grants scopes that were requested by Hydra. |
-| OAuth2Client missing | `sunbeam-cli` not found | Re-apply `oidc-client-cli.yaml`. |
-| Clock skew | JWT `iat`/`exp` errors | Ensure all pods have synchronized time (NTP). |
+| Cause                   | Signs                            | Action                                                                   |
+| ----------------------- | -------------------------------- | ------------------------------------------------------------------------ |
+| Stale consent challenge | SSO logs `challenge not found`   | This is usually a user double-submit; instruct user to restart the flow. |
+| Missing requested scope | Hydra rejects consent acceptance | Verify the portal only grants scopes that were requested by Hydra.       |
+| OAuth2Client missing    | `sunbeam-cli` not found          | Re-apply `oidc-client-cli.yaml`.                                         |
+| Clock skew              | JWT `iat`/`exp` errors           | Ensure all pods have synchronized time (NTP).                            |
 
 ## Rollback
 
@@ -46,4 +48,5 @@ kubectl -n ory rollout undo deployment/hydra
 
 ## Escalation
 
-Escalate to the platform on-call if Hydra itself is returning 5xx across all clients.
+Escalate to the platform on-call if Hydra itself is returning 5xx across all
+clients.

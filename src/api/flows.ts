@@ -12,7 +12,7 @@ export interface FlowSubmitResult {
   redirect_browser_to?: string;
 }
 
-function getSubmitUrl(action: string): string {
+export function getSubmitUrl(action: string): string {
   let path: string;
   try {
     const url = new URL(action);

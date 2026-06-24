@@ -31,14 +31,18 @@ for (const [alias, target] of Object.entries(manifest.imports ?? {})) {
       console.log(`  ✓ @sunbeam/${pkgName} already linked`);
       continue;
     }
-    console.log(`  ! @sunbeam/${pkgName} exists but is not a symlink, skipping`);
+    console.log(
+      `  ! @sunbeam/${pkgName} exists but is not a symlink, skipping`,
+    );
     continue;
   } catch (e) {
     if (!(e instanceof Deno.errors.NotFound)) throw e;
   }
 
   try {
-    await Deno.mkdir(new URL("@sunbeam", NODE_MODULES).pathname, { recursive: true });
+    await Deno.mkdir(new URL("@sunbeam", NODE_MODULES).pathname, {
+      recursive: true,
+    });
   } catch { /* ignore */ }
 
   await Deno.symlink(targetPath, linkPath);
@@ -54,7 +58,10 @@ for (const pkg of packagesToPatch) {
     const pkgJson = JSON.parse(raw) as { sideEffects?: unknown };
     if (pkgJson.sideEffects !== false) {
       pkgJson.sideEffects = false;
-      await Deno.writeTextFile(pkgJsonPath, JSON.stringify(pkgJson, null, 2) + "\n");
+      await Deno.writeTextFile(
+        pkgJsonPath,
+        JSON.stringify(pkgJson, null, 2) + "\n",
+      );
       console.log(`  → patched sideEffects: false for ${pkg}`);
     } else {
       console.log(`  ✓ ${pkg} already has sideEffects: false`);

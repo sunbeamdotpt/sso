@@ -28,7 +28,10 @@ export function SettingsPage() {
     flowId
       ? `/self-service/settings/flows?id=${flowId}`
       : "/self-service/settings/flows",
-    { queryKey: flowId ? ["settings-flow", flowId] : ["settings-flow"], enabled: !!flowId },
+    {
+      queryKey: flowId ? ["settings-flow", flowId] : ["settings-flow"],
+      enabled: !!flowId,
+    },
   );
 
   // A successfully loaded flow means we are no longer in the redirect loop.
@@ -93,8 +96,8 @@ export function SettingsPage() {
         <div className={card}>
           <h1 className={title}>Settings</h1>
           <Callout variant="warning">
-            {redirectError} Try reloading the page or contact support if the
-            problem persists.
+            {redirectError}{" "}
+            Try reloading the page or contact support if the problem persists.
           </Callout>
         </div>
       </div>
@@ -122,7 +125,13 @@ export function SettingsPage() {
     return (
       <div className={wrapper}>
         <div className={card}>
-          <div className={css({ display: "flex", justifyContent: "center", padding: "32px" })}>
+          <div
+            className={css({
+              display: "flex",
+              justifyContent: "center",
+              padding: "32px",
+            })}
+          >
             <Spinner size="md" />
           </div>
         </div>

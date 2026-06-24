@@ -30,12 +30,12 @@ Applies to TOTP/WebAuthn second-factor login and account-code recovery flows.
 
 ## Common Causes & Actions
 
-| Cause | Signs | Action |
-|-------|-------|--------|
+| Cause                 | Signs                                      | Action                                                                        |
+| --------------------- | ------------------------------------------ | ----------------------------------------------------------------------------- |
 | AAL too high for user | `AAL2 required` but user has no 2FA method | Enroll 2FA out-of-band via Kratos admin or lower the requirement temporarily. |
-| Courier not running | No recovery emails | Check `kratos-courier` StatefulSet and SMTP settings in Vault. |
-| Invalid recovery code | `recovery code invalid` | User should request a new code; check rate limiting. |
-| TOTP clock skew | Valid code rejected | Verify server and client clocks are synced. |
+| Courier not running   | No recovery emails                         | Check `kratos-courier` StatefulSet and SMTP settings in Vault.                |
+| Invalid recovery code | `recovery code invalid`                    | User should request a new code; check rate limiting.                          |
+| TOTP clock skew       | Valid code rejected                        | Verify server and client clocks are synced.                                   |
 
 ## Rollback
 
@@ -52,4 +52,5 @@ kubectl -n ory exec deploy/kratos -- kratos identities delete <id> --endpoint ht
 
 ## Escalation
 
-Escalate to the identity/security on-call if credential data integrity is suspected.
+Escalate to the identity/security on-call if credential data integrity is
+suspected.

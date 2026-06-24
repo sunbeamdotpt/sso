@@ -26,11 +26,11 @@ services:
       - sh
       - -c
       - |
-        for db in kratos hydra; do
-          psql -h postgres -U sunbeam -d sunbeam -tc "SELECT 1 FROM pg_database WHERE datname='$$db'" | grep -q 1 || \
-            psql -h postgres -U sunbeam -d sunbeam -c "CREATE DATABASE $$db OWNER sunbeam";
-        done
-        echo "ory-db-init complete"
+          for db in kratos hydra; do
+            psql -h postgres -U sunbeam -d sunbeam -tc "SELECT 1 FROM pg_database WHERE datname='$$db'" | grep -q 1 || \
+              psql -h postgres -U sunbeam -d sunbeam -c "CREATE DATABASE $$db OWNER sunbeam";
+          done
+          echo "ory-db-init complete"
     restart: no
 
   kratos-migrate:
@@ -97,7 +97,7 @@ services:
       URLS_LOGOUT: http://localhost:3102/oauth/logged-out
       URLS_DEVICE_VERIFY: http://localhost:3102/device
       STRATEGIES_ACCESS_TOKEN: jwt
-      OAUTH2_EXPOSE_INTERNAL_ERRORS: 'false'
+      OAUTH2_EXPOSE_INTERNAL_ERRORS: "false"
       SECRETS_SYSTEM: ${SECRETS_SYSTEM}
       SECRETS_COOKIE: ${SECRETS_COOKIE}
     command: serve all --dev
@@ -119,44 +119,44 @@ services:
       - -c
     command:
       - |
-        set -e
-        HYDRA_ADMIN="http://hydra:4445"
-        create_client() {
-          cid="$$1"
-          shift
-          curl -sf -X POST "$$HYDRA_ADMIN/admin/clients" \
-            -H "Content-Type: application/json" \
-            -d "$$@" || echo "$$cid: client may already exist"
-        }
-        create_client kanban-ui '{
-          "client_id": "kanban-ui",
-          "client_name": "Kanban",
-          "grant_types": ["authorization_code", "refresh_token"],
-          "response_types": ["code"],
-          "scope": "openid email profile offline_access kanban.read kanban.write",
-          "redirect_uris": ["http://localhost:47823/auth/callback"],
-          "token_endpoint_auth_method": "none",
-          "skip_consent": true
-        }'
-        create_client press '{
-          "client_id": "press",
-          "client_name": "Press",
-          "grant_types": ["authorization_code", "refresh_token"],
-          "response_types": ["code"],
-          "scope": "openid email profile offline_access",
-          "redirect_uris": ["http://localhost:5174/callback"],
-          "token_endpoint_auth_method": "none",
-          "skip_consent": true
-        }'
-        create_client sunbeam-device '{
-          "client_id": "sunbeam-device",
-          "client_name": "Sunbeam Device",
-          "grant_types": ["urn:ietf:params:oauth:grant-type:device_code"],
-          "scope": "openid email profile offline_access",
-          "token_endpoint_auth_method": "none",
-          "skip_consent": true
-        }'
-        echo "hydra-init complete"
+          set -e
+          HYDRA_ADMIN="http://hydra:4445"
+          create_client() {
+            cid="$$1"
+            shift
+            curl -sf -X POST "$$HYDRA_ADMIN/admin/clients" \
+              -H "Content-Type: application/json" \
+              -d "$$@" || echo "$$cid: client may already exist"
+          }
+          create_client kanban-ui '{
+            "client_id": "kanban-ui",
+            "client_name": "Kanban",
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "scope": "openid email profile offline_access kanban.read kanban.write",
+            "redirect_uris": ["http://localhost:47823/auth/callback"],
+            "token_endpoint_auth_method": "none",
+            "skip_consent": true
+          }'
+          create_client press '{
+            "client_id": "press",
+            "client_name": "Press",
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "scope": "openid email profile offline_access",
+            "redirect_uris": ["http://localhost:5174/callback"],
+            "token_endpoint_auth_method": "none",
+            "skip_consent": true
+          }'
+          create_client sunbeam-device '{
+            "client_id": "sunbeam-device",
+            "client_name": "Sunbeam Device",
+            "grant_types": ["urn:ietf:params:oauth:grant-type:device_code"],
+            "scope": "openid email profile offline_access",
+            "token_endpoint_auth_method": "none",
+            "skip_consent": true
+          }'
+          echo "hydra-init complete"
     restart: no
 
   stalwart:

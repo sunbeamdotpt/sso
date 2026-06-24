@@ -15,7 +15,6 @@
 # --- Shared Templates ---
 
 _templates:
-
   ci_env: &ci_env
     GITEA_TOKEN: ${WFE_GITEA_TOKEN}
     TEA_TOKEN: ${WFE_GITEA_TOKEN}
@@ -49,7 +48,6 @@ _templates:
 workflows:
 
   # === checkout ===
-
   - id: checkout
     name: Checkout
     version: 1
@@ -241,9 +239,9 @@ workflows:
           push: true
           buildkit_addr: tcp://buildkitd.build.svc:1234
           tls:
-            ca:   /workspace/buildkit-certs/ca.pem
+            ca: /workspace/buildkit-certs/ca.pem
             cert: /workspace/buildkit-certs/client.pem
-            key:  /workspace/buildkit-certs/client-key.pem
+            key: /workspace/buildkit-certs/client-key.pem
           timeout: 30m
 
   # === release ===

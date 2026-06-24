@@ -58,10 +58,30 @@ Environment variables:
 - `KRATOS_ADMIN_URL` — Kratos admin API
 - `HYDRA_ADMIN_URL` — Hydra admin API
 
+## Testing
+
+See [`docs/runbooks/testing.md`](docs/runbooks/testing.md) for a complete guide
+to running unit, integration, local E2E, and production-like E2E tests on a new
+machine.
+
+Quick reference:
+
+```bash
+# Unit tests
+deno task test
+cd api && cargo test
+
+# E2E (dev stack must be running)
+deno task test:e2e
+
+# Production-like E2E (self-contained)
+deno task test:e2e:prod
+```
+
 ## Container Image
 
 ```bash
-container build -t sso:local .
+docker build -t sso:local .
 ```
 
 The production image is distroless and contains only:

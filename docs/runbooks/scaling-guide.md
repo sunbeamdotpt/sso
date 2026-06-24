@@ -4,11 +4,11 @@ The SSO stack scales horizontally via HorizontalPodAutoscalers (HPAs).
 
 ## Current Autoscaling Configuration
 
-| Component | minReplicas | maxReplicas | Target CPU | Target Memory |
-|-----------|-------------|-------------|------------|---------------|
-| SSO portal | 2 | 10 | 70% | 80% |
-| Kratos | 2 | 8 | 70% | 80% |
-| Hydra | 2 | 8 | 70% | 80% |
+| Component  | minReplicas | maxReplicas | Target CPU | Target Memory |
+| ---------- | ----------- | ----------- | ---------- | ------------- |
+| SSO portal | 2           | 10          | 70%        | 80%           |
+| Kratos     | 2           | 8           | 70%        | 80%           |
+| Hydra      | 2           | 8           | 70%        | 80%           |
 
 ## Manual Scaling
 
@@ -34,7 +34,8 @@ Resource limits are configured in:
 - `kratos-values.yaml` (`deployment.resources`)
 - `hydra-values.yaml` (`deployment.resources`)
 
-To increase memory or CPU limits, edit the relevant file and re-apply the Kustomize overlay.
+To increase memory or CPU limits, edit the relevant file and re-apply the
+Kustomize overlay.
 
 ## Capacity Planning
 

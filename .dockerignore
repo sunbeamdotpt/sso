@@ -26,3 +26,23 @@ Thumbs.db
 **/*.test.tsx
 **/*.spec.ts
 **/*.spec.tsx
+e2e/certs/
+e2e/screenshots/
+coverage/
+test-results/
+
+# Generated/local dev state
+.kratos/
+.vite/
+
+# Not needed in the production image
+e2e/
+docs/
+.github/
+playwright*.config.ts
+identity.schema.json
+kratos.yaml
+dev.toml*
+docker-compose.yaml
+.env
+.env.example

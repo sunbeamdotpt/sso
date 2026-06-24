@@ -4,11 +4,11 @@ name: Release Container
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Image tag to build and push (e.g. v1.0.0-rc2)'
+        description: "Image tag to build and push (e.g. v1.0.0-rc2)"
         required: true
 
 permissions:

@@ -148,7 +148,10 @@ export function LoginFlowPage() {
     flowId
       ? `/self-service/login/flows?id=${flowId}`
       : "/self-service/login/flows",
-    { queryKey: flowId ? ["login-flow", flowId] : ["login-flow"], enabled: !!flowId },
+    {
+      queryKey: flowId ? ["login-flow", flowId] : ["login-flow"],
+      enabled: !!flowId,
+    },
   );
 
   // A successfully loaded flow means we are no longer in the redirect loop;
@@ -314,14 +317,13 @@ export function LoginFlowPage() {
 
       {redirectError && (
         <Callout variant="warning">
-          {redirectError} Try reloading the page or contact support if the
-          problem persists.
+          {redirectError}{" "}
+          Try reloading the page or contact support if the problem persists.
         </Callout>
       )}
 
-      {!redirectError && !flowId && status !== "initializing" && !currentLoginFlow && (
-        <p className={statusText}>Redirecting…</p>
-      )}
+      {!redirectError && !flowId && status !== "initializing" &&
+        !currentLoginFlow && <p className={statusText}>Redirecting…</p>}
 
       {mode.type === "login" && currentLoginFlow && mode.step === "password" &&
         (
@@ -439,7 +441,6 @@ export function LoginFlowPage() {
           </button>
         </div>
       )}
-
     </div>
   );
 }

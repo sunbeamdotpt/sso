@@ -7,6 +7,7 @@ const LOGOUT_CHALLENGE = "12345678-1234-1234-1234-123456789abd";
 const CONSENT_CHALLENGE = "12345678-1234-1234-1234-123456789abe";
 const LOGIN_FLOW_ID = "login-flow-screenshot";
 const RECOVERY_FLOW_ID = "recovery-flow-screenshot";
+const SETTINGS_RECOVERY_FLOW_ID = "settings-recovery-flow-screenshot";
 
 function apiResponse(body: unknown, status = 200) {
   return {
@@ -193,9 +194,12 @@ async function mockLoginFlow(page: Page) {
     await route.continue();
   });
 
-  await page.route(/\/api\/self-service\/login\/flows(\?.*)?$/, async (route) => {
-    await route.fulfill(apiResponse(buildLoginFlow(flowId, action)));
-  });
+  await page.route(
+    /\/api\/self-service\/login\/flows(\?.*)?$/,
+    async (route) => {
+      await route.fulfill(apiResponse(buildLoginFlow(flowId, action)));
+    },
+  );
 
   // WebKit does not allow route.fulfill with a 3xx redirect, so tests must
   // navigate directly to /login?flow=LOGIN_FLOW_ID instead of relying on this
@@ -270,38 +274,82 @@ async function mockRecoveryFlow(page: Page) {
     }
 
     if (postBody?.method === "code" && postBody.code) {
-      return route.fulfill(apiResponse({
-        id: flowId,
-        type: "recovery",
-        state: "passed_challenge",
-        ui: {
-          action,
-          method: "POST",
-          nodes: [
-            {
-              type: "input",
-              group: "default",
-              attributes: { name: "csrf_token", type: "hidden", value: "csrf" },
-            },
-          ],
-          messages: [{
-            type: "info",
-            text: "You successfully recovered your account.",
-            id: 1060001,
-          }],
-        },
-      }));
+      // The real Kratos response is a 303 redirect to the settings flow after
+      // the recovery code is verified. route.fulfill with a 3xx status is not
+      // supported in WebKit, so return a tiny HTML page that redirects instead.
+      const target = `/recovery/reset?flow=${SETTINGS_RECOVERY_FLOW_ID}`;
+      return route.fulfill({
+        status: 200,
+        headers: { "Content-Type": "text/html" },
+        body:
+          `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${target}">` +
+          `</head><body><script>location.replace('${target}')</script></body></html>`,
+      });
     }
 
     await route.continue();
   });
 
-  await page.route(/\/api\/self-service\/recovery\/flows(\?.*)?$/, async (route) => {
-    await route.fulfill(apiResponse(buildRecoveryFlow(flowId, action)));
-  });
+  await page.route(
+    /\/api\/self-service\/recovery\/flows(\?.*)?$/,
+    async (route) => {
+      await route.fulfill(apiResponse(buildRecoveryFlow(flowId, action)));
+    },
+  );
 
   // WebKit does not allow route.fulfill with a 3xx redirect; tests navigate
   // directly to /recovery?flow=RECOVERY_FLOW_ID.
+}
+
+function buildSettingsFlow(flowId: string, action: string) {
+  return {
+    id: flowId,
+    type: "settings",
+    state: "show_form",
+    ui: {
+      action,
+      method: "POST",
+      nodes: [
+        {
+          type: "input",
+          group: "default",
+          attributes: { name: "csrf_token", type: "hidden", value: "csrf" },
+        },
+        {
+          type: "input",
+          group: "password",
+          attributes: { name: "password", type: "password", value: "" },
+        },
+        {
+          type: "input",
+          group: "password",
+          attributes: { name: "method", type: "submit", value: "password" },
+        },
+      ],
+      messages: [],
+    },
+  };
+}
+
+async function mockSettingsFlow(page: Page) {
+  const flowId = SETTINGS_RECOVERY_FLOW_ID;
+  const action = mockFlowAction("/self-service/settings", flowId);
+
+  await page.route(/\/api\/self-service\/settings(\?.*)?$/, async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    const postBody = route.request().postDataJSON();
+    if (postBody?.method === "password") {
+      return route.fulfill(apiResponse(buildSettingsFlow(flowId, action)));
+    }
+    await route.continue();
+  });
+
+  await page.route(
+    /\/api\/self-service\/settings\/flows(\?.*)?$/,
+    async (route) => {
+      await route.fulfill(apiResponse(buildSettingsFlow(flowId, action)));
+    },
+  );
 }
 
 async function mockHydraLogin(page: Page) {
@@ -437,6 +485,7 @@ test.describe("Mocked page state screenshots", () => {
   test("/recovery states", async ({ page }) => {
     await mockAnonymousSession(page);
     await mockRecoveryFlow(page);
+    await mockSettingsFlow(page);
     await page.goto(`/recovery?flow=${RECOVERY_FLOW_ID}`);
     await expect(page.getByRole("heading", { name: "Reset your password" }))
       .toBeVisible();
@@ -457,7 +506,16 @@ test.describe("Mocked page state screenshots", () => {
 
     await page.getByPlaceholder("000000").fill("123456");
     await page.getByRole("button", { name: /Verify Code/i }).click();
-    await expect(page.getByRole("heading", { name: "Password reset" }))
+    await expect(page).toHaveURL(
+      `/recovery/reset?flow=${SETTINGS_RECOVERY_FLOW_ID}`,
+      { timeout: 10_000 },
+    );
+    await expect(page.getByRole("heading", { name: "Set a new password" }))
+      .toBeVisible({ timeout: 10_000 });
+
+    await page.getByLabel(/New password/i).fill("NewPass123!");
+    await page.getByRole("button", { name: /Update Password/i }).click();
+    await expect(page.getByRole("heading", { name: "Password updated" }))
       .toBeVisible({ timeout: 10_000 });
     await page.screenshot({
       path: `${OUT}/recovery-success.png`,

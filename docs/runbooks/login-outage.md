@@ -30,13 +30,13 @@ Applies to the Sunbeam SSO portal (`sso` Deployment in the `ory` namespace).
 
 ## Common Causes & Actions
 
-| Cause | Signs | Action |
-|-------|-------|--------|
-| SSO pods crashing | `CrashLoopBackOff` | Check env vars and secrets; ensure `CSRF_COOKIE_SECRET` and `COOKIE_SECRET` are present. |
-| Kratos unreachable | SSO logs show ECONNREFUSED to `kratos-public` | Verify Kratos pods and `kratos-public` Service. |
-| Hydra consent failures | Consent endpoint 5xx | Check Hydra pods and `hydra-admin` Service; verify OAuth2Client `sunbeam-cli` exists. |
-| HPA at max | `kubectl get hpa -n ory` shows max replicas | Scale Deployment manually if needed and investigate traffic source. |
-| Database issue | Kratos/Hydra migration errors | Check PostgreSQL connectivity and Vault DynamicSecret rotation. |
+| Cause                  | Signs                                         | Action                                                                                   |
+| ---------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| SSO pods crashing      | `CrashLoopBackOff`                            | Check env vars and secrets; ensure `CSRF_COOKIE_SECRET` and `COOKIE_SECRET` are present. |
+| Kratos unreachable     | SSO logs show ECONNREFUSED to `kratos-public` | Verify Kratos pods and `kratos-public` Service.                                          |
+| Hydra consent failures | Consent endpoint 5xx                          | Check Hydra pods and `hydra-admin` Service; verify OAuth2Client `sunbeam-cli` exists.    |
+| HPA at max             | `kubectl get hpa -n ory` shows max replicas   | Scale Deployment manually if needed and investigate traffic source.                      |
+| Database issue         | Kratos/Hydra migration errors                 | Check PostgreSQL connectivity and Vault DynamicSecret rotation.                          |
 
 ## Rollback
 
@@ -48,4 +48,5 @@ kubectl -n ory rollout undo deployment/sso
 
 ## Escalation
 
-If the outage persists after the above steps, escalate to the platform on-call and join `#incidents`.
+If the outage persists after the above steps, escalate to the platform on-call
+and join `#incidents`.

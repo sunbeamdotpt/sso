@@ -1,0 +1,127 @@
+version: v0.13.0
+
+dsn: postgres://sunbeam:sunbeam@host.docker.internal:5432/kratos?sslmode=disable
+
+serve:
+  public:
+    base_url: https://auth.sunbeam.test:4443/api/
+    cors:
+      enabled: true
+      allowed_origins:
+        - https://auth.sunbeam.test:4443
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
+      allowed_headers:
+        - Authorization
+        - Content-Type
+        - X-CSRF-Token
+      exposed_headers:
+        - Content-Type
+      allow_credentials: true
+  admin:
+    base_url: http://localhost:5434/
+
+selfservice:
+  default_browser_return_url: https://auth.sunbeam.test:4443/
+  allowed_return_urls:
+    - https://auth.sunbeam.test:4443/
+    - https://auth.sunbeam.test:4443/login
+
+  methods:
+    password:
+      enabled: true
+      config:
+        min_password_length: 12
+        haveibeenpwned_enabled: true
+        identifier_similarity_check_enabled: true
+    totp:
+      enabled: true
+      config:
+        issuer: Sunbeam Studios
+    webauthn:
+      enabled: true
+      config:
+        passwordless: true
+        rp:
+          display_name: Sunbeam Studios
+          id: sunbeam.test
+          origins:
+            - https://auth.sunbeam.test:4443
+    lookup_secret:
+      enabled: true
+    code:
+      enabled: true
+    oidc:
+      enabled: true
+
+  flows:
+    error:
+      ui_url: https://auth.sunbeam.test:4443/error
+
+    login:
+      ui_url: https://auth.sunbeam.test:4443/login
+      lifespan: 10m
+      after:
+        password:
+          hooks:
+            - hook: require_verified_address
+
+    settings:
+      ui_url: https://auth.sunbeam.test:4443/recovery/reset
+      privileged_session_max_age: 15m
+      required_aal: highest_available
+
+    recovery:
+      enabled: true
+      ui_url: https://auth.sunbeam.test:4443/recovery
+      use: code
+      notify_unknown_recipients: false
+
+    verification:
+      enabled: false
+
+    logout:
+      after:
+        default_browser_return_url: https://auth.sunbeam.test:4443/login
+
+    registration:
+      enabled: false
+      ui_url: https://auth.sunbeam.test:4443/registration
+
+log:
+  level: info
+  format: text
+  leak_sensitive_values: false
+
+courier:
+  smtp:
+    connection_uri: smtps://test:test@host.docker.internal:1025/?skip_ssl_verify=true&legacy_ssl=true
+    from_address: auth@sunbeam.test
+    from_name: Sunbeam Studios
+
+identity:
+  default_schema_id: default
+  schemas:
+    - id: default
+      url: file:///etc/config/kratos/identity.schema.json
+
+session:
+  lifespan: 720h
+  earliest_possible_extend: 24h
+  cookie:
+    domain: sunbeam.test
+    name: ory_kratos_session
+    path: /
+    same_site: Lax
+    secure: "true"
+    persistent: true
+  whoami:
+    required_aal: highest_available
+
+secrets:
+  cookie:
+    - ${COOKIE_SECRET}

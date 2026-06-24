@@ -27,7 +27,8 @@ describe("detectRedirectLoop", () => {
 
   it("allows the first redirect", () => {
     const win = mockWindow("https://auth.sunbeam.pt/login");
-    expect(detectRedirectLoop("/api/self-service/login/browser", win)).toBeNull();
+    expect(detectRedirectLoop("/api/self-service/login/browser", win))
+      .toBeNull();
   });
 
   it("detects a repeated redirect as a loop", () => {
@@ -46,7 +47,10 @@ describe("detectRedirectLoop", () => {
     const win = mockWindow("https://auth.sunbeam.pt/login");
     detectRedirectLoop("/api/self-service/login/browser", win);
 
-    const result = detectRedirectLoop("/api/self-service/recovery/browser", win);
+    const result = detectRedirectLoop(
+      "/api/self-service/recovery/browser",
+      win,
+    );
     expect(result).toBeNull();
   });
 

@@ -1,13 +1,26 @@
 # Copyright Sunbeam Studios 2026
 # SPDX-License-Identifier: AGPL-3.0-or-later
+# syntax=docker/dockerfile:1
+# Multi-stage, multi-architecture build for the SSO portal.
+#
+# Build for a single platform:
+#   docker buildx build --platform linux/amd64 -f Dockerfile -t ghcr.io/sunbeamdotpt/sso:v1.0.0-rc13 .
+#
+# Build for both platforms:
+#   docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile -t ghcr.io/sunbeamdotpt/sso:v1.0.0-rc13 .
 
-# Stage 1: Build the Vite SPA.
-# This stage always runs on the native build platform because Node/Deno
-# postinstall scripts (esbuild, protobufjs) fail under QEMU emulation.
-FROM --platform=$BUILDPLATFORM denoland/deno:2.7.3 AS ui-builder
 ARG VERSION=unknown
-ENV VERSION=${VERSION}
+
+FROM --platform=$BUILDPLATFORM tonistiigi/xx AS xx
+
+# Stage 1: Build the Vite SPA on the native build platform.
+# Deno postinstall scripts (esbuild, protobufjs) do not run reliably under QEMU,
+# so this stage is always built natively and the resulting dist/ is copied into
+# the Rust stage.
+FROM --platform=$BUILDPLATFORM denoland/deno:2.7.3 AS ui-builder
+
 WORKDIR /app
+
 COPY deno.json deno.lock* ./
 COPY src/ ./src/
 COPY index.html ./
@@ -17,59 +30,64 @@ COPY tsconfig.json ./
 COPY vite.config.ts ./
 COPY styled-system/ ./styled-system/
 COPY scripts/ ./scripts/
+
 RUN deno task build
 
-# Stage 2: Build the Rust SSO server.
-# Cross-compile both amd64 and arm64 binaries from the native build platform to
-# avoid running the Rust compiler under QEMU emulation, which is pathologically
-# slow and can hang on larger dependency graphs.
+# Stage 2: Build the Rust SSO server with xx cross-compilation helpers.
 FROM --platform=$BUILDPLATFORM rust:1.96-slim-bookworm AS rust-builder
-ARG TARGETARCH
-ARG BUILDARCH
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      gcc g++ gcc-aarch64-linux-gnu gcc-x86-64-linux-gnu \
-      libc6-dev-arm64-cross linux-libc-dev-arm64-cross \
-      libc6-dev-amd64-cross linux-libc-dev-amd64-cross \
-      curl ca-certificates cmake pkg-config make protobuf-compiler && \
-    rm -rf /var/lib/apt/lists/*
-RUN rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
+
+# Bring in xx cross-compilation helpers.
+COPY --from=xx / /
+
+# clang + lld are used by xx-cargo for cross-compilation linking;
+# protobuf-compiler is needed by sunbeam-g2v's build script.
+RUN apt-get update \
+    && apt-get install -y clang lld protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
+
+# Copy the backend crate and the compiled SPA into the build tree.
+# static_files.rs expects the SPA at ../dist relative to api/src/.
 COPY api/ ./api/
 COPY --from=ui-builder /app/dist ./dist
 
-# Build amd64 binary.
-RUN cd api && \
-    CC_x86_64_unknown_linux_gnu=x86_64-linux-gnu-gcc \
-    CXX_x86_64_unknown_linux_gnu=x86_64-linux-gnu-g++ \
-    AR_x86_64_unknown_linux_gnu=x86_64-linux-gnu-ar \
-    CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc \
-    cargo build --release --target x86_64-unknown-linux-gnu && \
-    cp target/x86_64-unknown-linux-gnu/release/sso /sso-amd64
+WORKDIR /app/api
 
-# Build arm64 binary.
-RUN cd api && \
-    CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
-    CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
-    AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar \
-    CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
-    cargo build --release --target aarch64-unknown-linux-gnu && \
-    cp target/aarch64-unknown-linux-gnu/release/sso /sso-arm64
+# Fetch dependencies once, before TARGETPLATFORM is exposed, so the registry
+# cache is shared across target architectures.
+RUN --mount=type=cache,target=/root/.cargo/git/db \
+    --mount=type=cache,target=/root/.cargo/registry/cache \
+    --mount=type=cache,target=/root/.cargo/registry/index \
+    cargo fetch --locked
 
-# Pin tini to a released version, fetch both architectures, and verify checksums.
-RUN curl -fsSL -o /tini-amd64 \
-      "https://github.com/krallin/tini/releases/download/v0.19.0/tini-static-amd64" && \
-    curl -fsSL -o /tini-arm64 \
-      "https://github.com/krallin/tini/releases/download/v0.19.0/tini-static-arm64" && \
-    echo "c5b0666b4cb676901f90dfcb37106783c5fe2077b04590973b885950611b30ee  /tini-amd64" | sha256sum -c - && \
-    echo "eae1d3aa50c48fb23b8cbdf4e369d0910dfc538566bfd09df89a774aa84a48b9  /tini-arm64" | sha256sum -c - && \
-    chmod +x /tini-amd64 /tini-arm64
+ARG TARGETPLATFORM
+
+# Install the target C library headers and build the release binary.
+# xx-cargo selects the correct Rust target triple from TARGETPLATFORM.
+RUN --mount=type=cache,target=/root/.cargo/git/db \
+    --mount=type=cache,target=/root/.cargo/registry/cache \
+    --mount=type=cache,target=/root/.cargo/registry/index \
+    xx-apt-get install -y gcc libc6-dev \
+    && xx-cargo build --release --locked --bin sso \
+    && cp /app/api/target/$(xx-cargo --print-target-triple)/release/sso /app/sso \
+    && xx-verify /app/sso
 
 # Stage 3: distroless final image.
 FROM gcr.io/distroless/cc-debian12:nonroot
-ARG TARGETARCH
-WORKDIR /app
-COPY --from=rust-builder --chown=65532:65532 /tini-${TARGETARCH} /tini
-COPY --from=rust-builder --chown=65532:65532 /sso-${TARGETARCH} /app/sso
+
+ARG VERSION
+
+# OCI annotations so GHCR autolinks the image to the repository.
+LABEL org.opencontainers.image.title="sso" \
+      org.opencontainers.image.description="Sunbeam SSO portal" \
+      org.opencontainers.image.url="https://github.com/sunbeamdotpt/sso" \
+      org.opencontainers.image.source="https://github.com/sunbeamdotpt/sso.git" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later"
+
+COPY --from=rust-builder --chown=65532:65532 /app/sso /app/sso
+
 USER 65532:65532
 EXPOSE 3102
-ENTRYPOINT ["/tini", "--", "/app/sso"]
+ENTRYPOINT ["/app/sso"]

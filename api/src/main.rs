@@ -45,10 +45,7 @@ async fn health_handler() -> impl IntoResponse {
 /// Logs method, path (query string stripped), response status and latency.
 /// Intentionally excludes IP addresses, user agents, cookies, tokens and query
 /// parameters so the log cannot be tied back to an individual user.
-async fn access_log_layer(
-    request: axum::extract::Request,
-    next: Next,
-) -> Response {
+async fn access_log_layer(request: axum::extract::Request, next: Next) -> Response {
     let method = request.method().clone();
     let path = request.uri().path().to_string();
     let start = Instant::now();

@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en" data-sunbeam-config="%SUNBEAM_CONFIG%">
   <head>
     <meta charset="UTF-8" />
@@ -6,22 +6,29 @@
     <title>Sunbeam SSO</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Ysabeau+Infant:ital,wght@0,1..1000;1,1..1000&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Ysabeau+Infant:ital,wght@0,1..1000;1,1..1000&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
     <script>
       (function () {
         var name = "sunbeam-theme";
-        var cookie = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+        var cookie = document.cookie.match(
+          new RegExp("(?:^|; )" + name + "=([^;]*)"),
+        );
         var fromCookie = cookie ? decodeURIComponent(cookie[1]) : null;
         var fromStorage = localStorage.getItem(name);
-        var theme =
-          fromCookie === "light" || fromCookie === "dark"
-            ? fromCookie
-            : fromStorage === "light" || fromStorage === "dark"
-              ? fromStorage
-              : window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light";
+        var theme = fromCookie === "light" || fromCookie === "dark"
+          ? fromCookie
+          : fromStorage === "light" || fromStorage === "dark"
+          ? fromStorage
+          : window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
         document.documentElement.setAttribute("data-theme", theme);
       })();
     </script>

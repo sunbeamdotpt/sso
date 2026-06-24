@@ -32,7 +32,9 @@ static INDEX_HTML: OnceLock<Vec<u8>> = OnceLock::new();
 /// Build the injected `index.html` once, replacing the config placeholder with
 /// an HTML-escaped JSON blob derived from the runtime configuration.
 pub fn init(config: &Config) {
-    let raw = Dist::get("index.html").map(|f| f.data.into_owned()).unwrap_or_default();
+    let raw = Dist::get("index.html")
+        .map(|f| f.data.into_owned())
+        .unwrap_or_default();
     let template = String::from_utf8_lossy(&raw);
 
     if !template.contains(CONFIG_PLACEHOLDER) {
@@ -85,7 +87,7 @@ pub async fn static_handler(request: Request) -> Response {
                     )
                         .into_response();
                 }
-            }
+            },
         },
     };
 
@@ -100,18 +102,8 @@ pub async fn static_handler(request: Request) -> Response {
     // If we served the raw embedded index.html (init not called or placeholder
     // missing), just return it as-is. In production init is always called.
     if is_fallback {
-        return (
-            StatusCode::OK,
-            [(header::CONTENT_TYPE, mime)],
-            file.data,
-        )
-            .into_response();
+        return (StatusCode::OK, [(header::CONTENT_TYPE, mime)], file.data).into_response();
     }
 
-    (
-        StatusCode::OK,
-        [(header::CONTENT_TYPE, mime)],
-        file.data,
-    )
-        .into_response()
+    (StatusCode::OK, [(header::CONTENT_TYPE, mime)], file.data).into_response()
 }

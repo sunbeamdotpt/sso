@@ -31,7 +31,52 @@ const HOP_BY_HOP: &[&str] = &[
 
 fn is_hop_by_hop(name: &str) -> bool {
     let lower = name.to_ascii_lowercase();
-    HOP_BY_HOP.contains(&lower.as_str()) || lower == "host"
+    HOP_BY_HOP.contains(&lower.as_str())
+}
+
+/// Remove empty or duplicate `ory_kratos_session` cookie values from a raw
+/// Cookie header value. Stale host-only clearing cookies can otherwise shadow
+/// a valid domain-scoped session cookie and cause 401s.
+fn sanitize_cookie_value(value: &str) -> String {
+    let mut session_seen = false;
+    let parts: Vec<&str> = value
+        .split(';')
+        .map(str::trim)
+        .filter(|part| {
+            if part.is_empty() {
+                return false;
+            }
+            if let Some((name, val)) = part.split_once('=') {
+                if name.trim() == "ory_kratos_session" {
+                    if val.trim().is_empty() {
+                        return false;
+                    }
+                    if session_seen {
+                        return false;
+                    }
+                    session_seen = true;
+                }
+            }
+            true
+        })
+        .collect();
+    parts.join("; ")
+}
+
+/// Sanitize the `Cookie` header in `out` after it has been populated.
+fn sanitize_cookie_header(out: &mut reqwest::header::HeaderMap) {
+    if let Some(cookie_value) = out.get(reqwest::header::COOKIE).cloned() {
+        if let Ok(s) = cookie_value.to_str() {
+            let cleaned = sanitize_cookie_value(s);
+            if cleaned.is_empty() {
+                out.remove(reqwest::header::COOKIE);
+            } else if cleaned != s {
+                if let Ok(v) = reqwest::header::HeaderValue::from_str(&cleaned) {
+                    out.insert(reqwest::header::COOKIE, v);
+                }
+            }
+        }
+    }
 }
 
 /// Forward headers from the incoming request to upstream.
@@ -51,6 +96,7 @@ fn forward_request_headers(headers: &HeaderMap) -> reqwest::header::HeaderMap {
         };
         out.insert(reqwest_name, reqwest_value);
     }
+    sanitize_cookie_header(&mut out);
     out
 }
 
@@ -67,9 +113,7 @@ fn recovery_request_headers(headers: &HeaderMap) -> reqwest::header::HeaderMap {
                 let cleaned: Vec<&str> = s
                     .split(';')
                     .map(str::trim)
-                    .filter(|part| {
-                        !part.starts_with("ory_kratos_session=") && !part.is_empty()
-                    })
+                    .filter(|part| !part.starts_with("ory_kratos_session=") && !part.is_empty())
                     .collect();
                 if cleaned.is_empty() {
                     out.remove(&cookie_name);
@@ -84,38 +128,116 @@ fn recovery_request_headers(headers: &HeaderMap) -> reqwest::header::HeaderMap {
     out
 }
 
-/// Build a Set-Cookie header that clears any host-only `ory_kratos_session`
-/// cookie. Kratos sets the recovery session cookie with the configured domain
-/// (e.g. `sunbeam.pt`), but a stale host-only cookie on `auth.sunbeam.pt` can
-/// shadow it and cause 401s on the subsequent settings flow.
-fn clear_host_session_cookie() -> (HeaderName, HeaderValue) {
-    (
-        header::SET_COOKIE,
-        HeaderValue::from_static(
-            "ory_kratos_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
-        ),
-    )
+/// Build a Set-Cookie header that clears an `ory_kratos_session` cookie.
+/// If `domain` is provided the clearing cookie targets that domain; otherwise
+/// it targets the host-only cookie for the current host. `secure` mirrors the
+/// upstream cookie's `Secure` flag so the clearing cookie can evict a secure
+/// cookie that would otherwise be ignored by the browser.
+fn clear_session_cookie(domain: Option<&str>, secure: bool) -> (HeaderName, HeaderValue) {
+    let secure_attr = if secure { " Secure;" } else { "" };
+    let value = if let Some(domain) = domain {
+        HeaderValue::from_str(&format!(
+            "ory_kratos_session=; Path=/; Domain={domain}; Max-Age=0; HttpOnly;{secure_attr} SameSite=Lax"
+        ))
+        .unwrap_or_else(|_| {
+            HeaderValue::from_static(
+                "ory_kratos_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
+            )
+        })
+    } else {
+        HeaderValue::from_str(&format!(
+            "ory_kratos_session=; Path=/; Max-Age=0; HttpOnly;{secure_attr} SameSite=Lax"
+        ))
+        .unwrap_or_else(|_| {
+            HeaderValue::from_static(
+                "ory_kratos_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
+            )
+        })
+    };
+    (header::SET_COOKIE, value)
 }
 
-/// Forward upstream response headers, but for recovery responses clear any
-/// host-only session cookie when Kratos issues a new session.
+/// Extract the `Domain` attribute from the first `ory_kratos_session`
+/// `Set-Cookie` header returned by Kratos, if present.
+fn session_cookie_domain(headers: &reqwest::header::HeaderMap) -> Option<String> {
+    headers
+        .get_all(reqwest::header::SET_COOKIE)
+        .iter()
+        .find_map(|v| {
+            let s = v.to_str().ok()?;
+            if !s.trim().starts_with("ory_kratos_session=") {
+                return None;
+            }
+            s.split(';').find_map(|part| {
+                let mut kv = part.trim().splitn(2, '=');
+                let key = kv.next()?.trim();
+                let value = kv.next().map(str::trim).unwrap_or("");
+                if key.eq_ignore_ascii_case("domain") && !value.is_empty() {
+                    Some(value.to_owned())
+                } else {
+                    None
+                }
+            })
+        })
+}
+
+/// Whether the first `ory_kratos_session` `Set-Cookie` header has the
+/// `Secure` attribute.
+fn session_cookie_is_secure(headers: &reqwest::header::HeaderMap) -> bool {
+    headers
+        .get_all(reqwest::header::SET_COOKIE)
+        .iter()
+        .find_map(|v| {
+            let s = v.to_str().ok()?;
+            if !s.trim().starts_with("ory_kratos_session=") {
+                return None;
+            }
+            Some(
+                s.split(';')
+                    .any(|part| part.trim().eq_ignore_ascii_case("Secure")),
+            )
+        })
+        .unwrap_or(false)
+}
+
+/// Forward upstream response headers, but for recovery responses clear stale
+/// session cookies before issuing the new one so they cannot shadow it.
 fn recovery_response_headers(headers: &reqwest::header::HeaderMap) -> HeaderMap {
-    let mut out = forward_response_headers(headers);
-    let sets_session = headers.get_all(reqwest::header::SET_COOKIE).iter().any(|v| {
-        v.to_str()
-            .map(|s| s.trim().starts_with("ory_kratos_session="))
-            .unwrap_or(false)
-    });
+    let upstream = forward_response_headers(headers);
+    let domain = session_cookie_domain(headers);
+    let secure = session_cookie_is_secure(headers);
+    let sets_session = domain.is_some()
+        || headers
+            .get_all(reqwest::header::SET_COOKIE)
+            .iter()
+            .any(|v| {
+                v.to_str()
+                    .map(|s| s.trim().starts_with("ory_kratos_session="))
+                    .unwrap_or(false)
+            });
+
+    let mut out = HeaderMap::new();
     if sets_session {
-        // Append the clearing cookie *before* the new session cookie so the
-        // browser removes stale host-only cookies and then stores the new one.
-        let (name, value) = clear_host_session_cookie();
+        // Clear any stale domain-scoped cookie first, then any stale host-only
+        // cookie. The fresh session cookie is appended last so it wins.
+        if let Some(ref domain) = domain {
+            let (name, value) = clear_session_cookie(Some(domain), secure);
+            out.append(name, value);
+        }
+        let (name, value) = clear_session_cookie(None, secure);
         out.append(name, value);
+    }
+    for (name, value) in upstream.iter() {
+        out.append(name.clone(), value.clone());
     }
     out
 }
 
 /// Forward headers from upstream response to the client.
+///
+/// `Set-Cookie` is special-cased: upstream may emit several `Set-Cookie`
+/// headers and folding them into a single comma-separated value is invalid for
+/// cookies, so we always append them.
 fn forward_response_headers(headers: &reqwest::header::HeaderMap) -> HeaderMap {
     let mut out = HeaderMap::new();
     for (name, value) in headers {
@@ -130,7 +252,11 @@ fn forward_response_headers(headers: &reqwest::header::HeaderMap) -> HeaderMap {
             Ok(v) => v,
             Err(_) => continue,
         };
-        out.insert(axum_name, axum_value);
+        if axum_name == header::SET_COOKIE {
+            out.append(axum_name, axum_value);
+        } else {
+            out.insert(axum_name, axum_value);
+        }
     }
     out
 }
@@ -305,7 +431,8 @@ async fn session_handler(config: Arc<Config>, request: Request) -> Response {
         .headers()
         .get(header::COOKIE)
         .and_then(|v| v.to_str().ok())
-        .unwrap_or("");
+        .map(sanitize_cookie_value)
+        .unwrap_or_default();
 
     let client = match http_client() {
         Ok(c) => c,
@@ -413,4 +540,189 @@ pub fn kratos_routes(config: Arc<Config>) -> AxumRouter {
             "/{*path}",
             any(move |req: Request| kratos_proxy(Arc::clone(&config_catch_all), req)),
         )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use reqwest::header::{COOKIE, HOST, HeaderMap as ReqwestHeaderMap, SET_COOKIE};
+
+    #[test]
+    fn forward_response_headers_preserves_multiple_set_cookies() {
+        let mut upstream = ReqwestHeaderMap::new();
+        upstream.insert(
+            SET_COOKIE,
+            reqwest::header::HeaderValue::from_static("ory_kratos_session=abc; Path=/"),
+        );
+        upstream.append(
+            SET_COOKIE,
+            reqwest::header::HeaderValue::from_static("csrf_token=xyz; Path=/"),
+        );
+
+        let out = forward_response_headers(&upstream);
+        let cookies: Vec<_> = out.get_all(header::SET_COOKIE).iter().collect();
+        assert_eq!(cookies.len(), 2);
+        assert!(
+            cookies
+                .iter()
+                .any(|v| v.to_str().unwrap().starts_with("ory_kratos_session="))
+        );
+        assert!(
+            cookies
+                .iter()
+                .any(|v| v.to_str().unwrap().starts_with("csrf_token="))
+        );
+    }
+
+    #[test]
+    fn recovery_response_headers_clears_stale_session_and_keeps_new_one() {
+        let mut upstream = ReqwestHeaderMap::new();
+        upstream.insert(
+            SET_COOKIE,
+            reqwest::header::HeaderValue::from_static(
+                "ory_kratos_session=real; Path=/; Domain=sunbeam.pt; HttpOnly; Secure; SameSite=Lax",
+            ),
+        );
+        upstream.append(
+            SET_COOKIE,
+            reqwest::header::HeaderValue::from_static("csrf_token=csrf; Path=/"),
+        );
+
+        let out = recovery_response_headers(&upstream);
+        let cookies: Vec<_> = out
+            .get_all(header::SET_COOKIE)
+            .iter()
+            .map(|v| v.to_str().unwrap().to_owned())
+            .collect();
+
+        // The fresh session cookie must survive.
+        assert!(
+            cookies
+                .iter()
+                .any(|c| c.contains("ory_kratos_session=real"))
+        );
+        // The CSRF cookie must survive.
+        assert!(cookies.iter().any(|c| c.starts_with("csrf_token=")));
+        // A clearing cookie for the stale domain-scoped session must be present.
+        assert!(cookies.iter().any(|c| {
+            c.starts_with("ory_kratos_session=")
+                && c.contains("Domain=sunbeam.pt")
+                && c.contains("Max-Age=0")
+        }));
+        // A host-only clearing cookie must also be present for stale host-only shadows.
+        assert!(cookies.iter().any(|c| {
+            c.starts_with("ory_kratos_session=")
+                && !c.contains("Domain=")
+                && c.contains("Max-Age=0")
+        }));
+        // Clearing cookies must mirror the Secure flag so they can evict secure
+        // stale cookies instead of being ignored by the browser.
+        assert!(cookies.iter().all(|c| {
+            !c.starts_with("ory_kratos_session=")
+                || !c.contains("Max-Age=0")
+                || c.contains("Secure")
+        }));
+    }
+
+    #[test]
+    fn sanitize_cookie_value_drops_empty_session_cookie() {
+        let input = "ory_kratos_session=; csrf_token=abc; other=value";
+        let out = sanitize_cookie_value(input);
+        assert!(!out.contains("ory_kratos_session"));
+        assert!(out.contains("csrf_token=abc"));
+        assert!(out.contains("other=value"));
+    }
+
+    #[test]
+    fn sanitize_cookie_value_keeps_valid_session_cookie() {
+        let input = "ory_kratos_session=real; csrf_token=abc";
+        let out = sanitize_cookie_value(input);
+        assert!(out.contains("ory_kratos_session=real"));
+        assert!(out.contains("csrf_token=abc"));
+    }
+
+    #[test]
+    fn sanitize_cookie_value_drops_duplicate_session_cookies() {
+        let input = "ory_kratos_session=stale; ory_kratos_session=real; csrf_token=abc";
+        let out = sanitize_cookie_value(input);
+        // The first non-empty value is kept.
+        assert!(out.contains("ory_kratos_session=stale"));
+        assert!(!out.contains("ory_kratos_session=real"));
+    }
+
+    #[test]
+    fn recovery_request_headers_strip_session_cookie_but_keep_others() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            header::COOKIE,
+            HeaderValue::from_static("ory_kratos_session=stale; csrf_token=abc; other=value"),
+        );
+        let out = recovery_request_headers(&headers);
+        let cookie = out.get(COOKIE).unwrap().to_str().unwrap();
+        assert!(!cookie.contains("ory_kratos_session"));
+        assert!(cookie.contains("csrf_token=abc"));
+        assert!(cookie.contains("other=value"));
+    }
+
+    #[test]
+    fn forward_request_headers_preserves_host_header() {
+        let mut headers = HeaderMap::new();
+        headers.insert(header::HOST, HeaderValue::from_static("auth.sunbeam.pt"));
+        headers.insert(header::ACCEPT, HeaderValue::from_static("application/json"));
+        let out = forward_request_headers(&headers);
+        assert_eq!(out.get(HOST).unwrap().to_str().unwrap(), "auth.sunbeam.pt");
+        assert_eq!(
+            out.get(reqwest::header::ACCEPT).unwrap().to_str().unwrap(),
+            "application/json"
+        );
+    }
+
+    #[test]
+    fn session_cookie_domain_parses_domain_attribute() {
+        let mut headers = ReqwestHeaderMap::new();
+        headers.insert(
+            SET_COOKIE,
+            reqwest::header::HeaderValue::from_static(
+                "ory_kratos_session=val; Path=/; Domain=sunbeam.pt; HttpOnly",
+            ),
+        );
+        assert_eq!(
+            session_cookie_domain(&headers).as_deref(),
+            Some("sunbeam.pt")
+        );
+    }
+
+    #[test]
+    fn session_cookie_domain_returns_none_when_missing() {
+        let mut headers = ReqwestHeaderMap::new();
+        headers.insert(
+            SET_COOKIE,
+            reqwest::header::HeaderValue::from_static("ory_kratos_session=val; Path=/"),
+        );
+        assert!(session_cookie_domain(&headers).is_none());
+    }
+
+    #[test]
+    fn session_cookie_is_secure_detects_secure_flag() {
+        let mut headers = ReqwestHeaderMap::new();
+        headers.insert(
+            SET_COOKIE,
+            reqwest::header::HeaderValue::from_static(
+                "ory_kratos_session=val; Path=/; Domain=sunbeam.pt; Secure; HttpOnly",
+            ),
+        );
+        assert!(session_cookie_is_secure(&headers));
+    }
+
+    #[test]
+    fn session_cookie_is_secure_false_without_flag() {
+        let mut headers = ReqwestHeaderMap::new();
+        headers.insert(
+            SET_COOKIE,
+            reqwest::header::HeaderValue::from_static(
+                "ory_kratos_session=val; Path=/; Domain=sunbeam.pt; HttpOnly",
+            ),
+        );
+        assert!(!session_cookie_is_secure(&headers));
+    }
 }

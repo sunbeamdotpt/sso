@@ -18,15 +18,23 @@ async function adminFetch(path: string, init?: RequestInit) {
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Kratos admin ${init?.method ?? "GET"} ${path} failed: ${res.status} ${body}`);
+    throw new Error(
+      `Kratos admin ${
+        init?.method ?? "GET"
+      } ${path} failed: ${res.status} ${body}`,
+    );
   }
   return res;
 }
 
 async function findIdentityByEmail(email: string) {
   const res = await adminFetch("/identities");
-  const identities = await res.json() as Array<{ id: string; traits: Record<string, unknown> }>;
-  return identities.find((i) => (i.traits as Record<string, string>).email === email);
+  const identities = await res.json() as Array<
+    { id: string; traits: Record<string, unknown> }
+  >;
+  return identities.find((i) =>
+    (i.traits as Record<string, string>).email === email
+  );
 }
 
 async function createDevIdentity() {
@@ -54,14 +62,21 @@ async function createDevIdentity() {
       },
     }),
   });
-  const identity = await identityRes.json() as { id: string; verifiable_addresses?: Array<{ id: string }> };
+  const identity = await identityRes.json() as {
+    id: string;
+    verifiable_addresses?: Array<{ id: string }>;
+  };
 
   // Verify email so login hook doesn't block
   await adminFetch(`/identities/${identity.id}`, {
     method: "PATCH",
     body: JSON.stringify([
       { op: "replace", path: "/verifiable_addresses/0/verified", value: true },
-      { op: "replace", path: "/verifiable_addresses/0/status", value: "completed" },
+      {
+        op: "replace",
+        path: "/verifiable_addresses/0/status",
+        value: "completed",
+      },
     ]),
   });
 

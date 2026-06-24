@@ -2,7 +2,9 @@
 
 ## Getting Verification Codes / Links
 
-When a user needs a verification code or link (e.g., for `dev@sunbeam.pt`), trigger a verification flow and read the email body from the Kratos `courier_messages` table.
+When a user needs a verification code or link (e.g., for `dev@sunbeam.pt`),
+trigger a verification flow and read the email body from the Kratos
+`courier_messages` table.
 
 ### 1. Trigger a verification flow
 
@@ -41,11 +43,16 @@ docker --context lima-sunbeam-docker exec sso-postgres-1 \
   "SELECT body FROM courier_messages ORDER BY created_at DESC LIMIT 1;"
 ```
 
-This returns the full email body including the numeric verification code and the self-service verification link. The link will point to the Vite dev server (`http://localhost:5175/...`) because Kratos `serve.public.base_url` is configured accordingly.
+This returns the full email body including the numeric verification code and the
+self-service verification link. The link will point to the Vite dev server
+(`http://localhost:5175/...`) because Kratos `serve.public.base_url` is
+configured accordingly.
 
 ### Note on Stalwart
 
-Stalwart (the mail server) receives the email via SMTP from Kratos's courier worker, but the email content is easier to retrieve directly from the Kratos database rather than querying Stalwart's RocksDB storage or web admin API.
+Stalwart (the mail server) receives the email via SMTP from Kratos's courier
+worker, but the email content is easier to retrieve directly from the Kratos
+database rather than querying Stalwart's RocksDB storage or web admin API.
 
 ---
 
@@ -55,11 +62,14 @@ The SSO portal server is a Rust binary in `api/` built on `sunbeam-g2v` 0.3.
 
 - `api/src/main.rs` — Axum server setup, security headers, CORS, tracing.
 - `api/src/kratos.rs` — Kratos public API proxy and `/api/auth/session`.
-- `api/src/hydra.rs` — Hydra admin orchestration (login/consent/logout accept/reject).
+- `api/src/hydra.rs` — Hydra admin orchestration (login/consent/logout
+  accept/reject).
 - `api/src/static_files.rs` — Embedded Vite `dist/` served on `/`.
 - `api/src/config.rs` — Environment-based configuration.
 
-The compiled SPA is embedded into the Rust binary at build time via `rust-embed`, so the production container image contains only the single static binary plus `tini`.
+The compiled SPA is embedded into the Rust binary at build time via
+`rust-embed`, so the production container image contains only the single static
+binary plus `tini`.
 
 Build and test locally:
 
@@ -73,34 +83,62 @@ cargo build --release
 ./target/release/sso
 ```
 
+## Testing
+
+There is a dedicated runbook at `docs/runbooks/testing.md`. Key commands:
+
+```bash
+# Unit tests
+deno task test
+cd api && cargo test
+
+# Local E2E against the dev stack (must run `docker compose up -d` first)
+deno task test:e2e
+
+# Production-like E2E (self-contained; boots its own Kratos + TLS proxy)
+deno task test:e2e:prod
+```
+
+The production-like suite is the source of truth for production behaviour. It
+uses a fake domain (`auth.sunbeam.test`), a local CA via `mkcert`, a TLS reverse
+proxy, and a dedicated Kratos container configured with domain-scoped Secure
+cookies and `required_aal: highest_available`.
+
 ## Auth Redirect Invariants
 
 The SSO portal redirects to Kratos browser flows. The following must stay true;
 violating any of them is the most common way to create an infinite redirect
 loop:
 
-1. **`/login` must always redirect to `/api/self-service/login/browser?refresh=true`.**
-   The `refresh=true` parameter forces Kratos to create a new flow even when a
-   session already exists. Without it, Kratos bounces an authenticated user to
+1. **`/login` must always redirect to
+   `/api/self-service/login/browser?refresh=true`.** The `refresh=true`
+   parameter forces Kratos to create a new flow even when a session already
+   exists. Without it, Kratos bounces an authenticated user to
    `default_browser_return_url`, which can ping-pong back to `/login` forever.
 
-2. **Kratos `default_browser_return_url` must not be `/login`.**
-   It should be `/` (or another path that does not itself redirect to Kratos).
-   This is configured in `sbbb/base/ory/kratos-selfservice-urls.yaml`.
+2. **Kratos `default_browser_return_url` must not be `/login`.** It should be
+   `/` (or another path that does not itself redirect to Kratos). This is
+   configured in `sbbb/base/ory/kratos-selfservice-urls.yaml`.
 
-3. **Client-side redirect guard.**
-   `src/utils/redirect-guard.ts` records outbound SPA redirects. If the same
-   page redirects to the same Kratos endpoint twice in a row, the SPA renders a
-   fatal error instead of looping.
+3. **Client-side redirect guard.** `src/utils/redirect-guard.ts` records
+   outbound SPA redirects. If the same page redirects to the same Kratos
+   endpoint twice in a row, the SPA renders a fatal error instead of looping.
 
 ## Semantic Memory Search (Optional)
 
-If a `sunbeam-memory` MCP server is available in your environment, use it for codebase search instead of `grep` or `rg`.
+If a `sunbeam-memory` MCP server is available in your environment, use it for
+codebase search instead of `grep` or `rg`.
 
-1. **Initialize the repository first.** Before searching, ensure this codebase is indexed:
+1. **Initialize the repository first.** Before searching, ensure this codebase
+   is indexed:
    - Call `add_watch_target` with the absolute path to this repository.
    - Wait for indexing to complete, then search.
-2. **Prefer semantic search.** Use `search_facts` with natural-language queries about behavior, design decisions, known issues, and prior changes.
-3. **Store useful findings.** If you discover something future agents should remember (a gotcha, invariant, or decision), call `store_fact` with a concise note and a source URN when possible.
+2. **Prefer semantic search.** Use `search_facts` with natural-language queries
+   about behavior, design decisions, known issues, and prior changes.
+3. **Store useful findings.** If you discover something future agents should
+   remember (a gotcha, invariant, or decision), call `store_fact` with a concise
+   note and a source URN when possible.
 
-`sunbeam-memory` is **optional**. If the server is not available, skip these steps and use `grep` / `rg` / `Read` as usual. Do not fail, stall, or ask the user to install it.
+`sunbeam-memory` is **optional**. If the server is not available, skip these
+steps and use `grep` / `rg` / `Read` as usual. Do not fail, stall, or ask the
+user to install it.

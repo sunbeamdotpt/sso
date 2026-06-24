@@ -4,7 +4,7 @@ import { useAuth, useRestQuery } from "@sunbeam/g2v";
 import { css } from "styled-system/css";
 import { Button, Callout, Spinner, TextInput } from "@sunbeam/beam-ui";
 import { api } from "../api/client.ts";
-import { submitFlow } from "../api/flows.ts";
+import { getSubmitUrl, submitFlow } from "../api/flows.ts";
 import { getFlowError } from "../api/types.ts";
 import {
   clearRedirectHistory,
@@ -16,7 +16,8 @@ import type { RecoveryFlow } from "../api/types.ts";
 type RecoveryStep = "email" | "code" | "password" | "submitting" | "success";
 
 function hasPasswordNode(flow: RecoveryFlow | null): boolean {
-  return flow?.ui?.nodes?.some((n) => n.attributes.name === "password") ?? false;
+  return flow?.ui?.nodes?.some((n) => n.attributes.name === "password") ??
+    false;
 }
 
 function hasCodeNode(flow: RecoveryFlow | null): boolean {
@@ -45,7 +46,10 @@ export function RecoveryPage() {
     flowId
       ? `/self-service/recovery/flows?id=${flowId}`
       : "/self-service/recovery/flows",
-    { queryKey: flowId ? ["recovery-flow", flowId] : ["recovery-flow"], enabled: !!flowId },
+    {
+      queryKey: flowId ? ["recovery-flow", flowId] : ["recovery-flow"],
+      enabled: !!flowId,
+    },
   );
 
   // A successfully loaded flow or recovery link means we are no longer in the
@@ -170,60 +174,6 @@ export function RecoveryPage() {
     [currentFlow, email, recoveryQuery],
   );
 
-  const handleCodeSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!currentFlow?.ui?.action) return;
-
-      setStep("submitting");
-      setFormError(null);
-
-      const result = await submitFlow(
-        currentFlow as RecoveryFlow & { ui: NonNullable<RecoveryFlow["ui"]> },
-        { code },
-        "code",
-      );
-
-      if (result.success && result.flow) {
-        const updatedFlow = result.flow as RecoveryFlow;
-        setRecoveryFlow(updatedFlow);
-        if (hasPasswordNode(updatedFlow)) {
-          setStep("password");
-        } else {
-          setStep("success");
-        }
-        return;
-      }
-
-      // Kratos v25+ returns a settings flow redirect after the recovery code is
-      // verified. We need a fresh browser-initiated settings flow so Kratos sets
-      // the CSRF cookie before the SPA fetches the flow JSON; otherwise the
-      // settings form POST fails with a CSRF mismatch.
-      if (result.redirect_browser_to) {
-        globalThis.location.href = "/api/self-service/settings/browser";
-        return;
-      }
-
-      if (result.error) {
-        if (result.error === "This session expired. Please try again.") {
-          setRecoveryFlow(null);
-          recoveryQuery.refetch();
-          setStep("email");
-        } else {
-          if (result.flow) {
-            setRecoveryFlow(result.flow as RecoveryFlow);
-          }
-          setFormError(result.error);
-          setStep("code");
-        }
-      } else {
-        setFormError("Unexpected response from recovery flow.");
-        setStep("code");
-      }
-    },
-    [currentFlow, code, recoveryQuery],
-  );
-
   const handlePasswordSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -267,7 +217,13 @@ export function RecoveryPage() {
     return (
       <div className={wrapper}>
         <div className={card}>
-          <div className={css({ display: "flex", justifyContent: "center", padding: "32px" })}>
+          <div
+            className={css({
+              display: "flex",
+              justifyContent: "center",
+              padding: "32px",
+            })}
+          >
             <Spinner size="md" />
           </div>
         </div>
@@ -281,15 +237,17 @@ export function RecoveryPage() {
         <div className={card}>
           <h1 className={title}>Reset your password</h1>
           <Callout variant="warning">
-            {redirectError} Try reloading the page or contact support if the
-            problem persists.
+            {redirectError}{" "}
+            Try reloading the page or contact support if the problem persists.
           </Callout>
         </div>
       </div>
     );
   }
 
-  if (!flowId && !search.token && status !== "initializing" && !isAuthenticated) {
+  if (
+    !flowId && !search.token && status !== "initializing" && !isAuthenticated
+  ) {
     return (
       <div className={wrapper}>
         <div className={card}>
@@ -306,7 +264,8 @@ export function RecoveryPage() {
         <div className={card}>
           <h1 className={title}>Already signed in</h1>
           <p className={subtitle}>
-            You are already signed in. Sign out if you need to recover a different account.
+            You are already signed in. Sign out if you need to recover a
+            different account.
           </p>
           <a href="/" className={primaryLink}>
             Continue
@@ -322,7 +281,8 @@ export function RecoveryPage() {
         <div className={card}>
           <h1 className={title}>Password reset</h1>
           <p className={subtitle}>
-            Your password has been updated. You can now sign in with your new password.
+            Your password has been updated. You can now sign in with your new
+            password.
           </p>
           <a href="/login" className={primaryLink}>
             Sign in
@@ -337,7 +297,8 @@ export function RecoveryPage() {
       <div className={card}>
         <h1 className={title}>Reset your password</h1>
         <p className={subtitle}>
-          {step === "email" && "Enter your email address and we'll send you a recovery code."}
+          {step === "email" &&
+            "Enter your email address and we'll send you a recovery code."}
           {step === "code" && "Enter the recovery code sent to your email."}
           {step === "password" && "Choose a new password for your account."}
         </p>
@@ -367,23 +328,36 @@ export function RecoveryPage() {
           </form>
         )}
 
-        {step === "code" && (
-          <form onSubmit={handleCodeSubmit} className={formStack}>
+        {step === "code" && currentFlow?.ui?.action && (
+          <form
+            action={getSubmitUrl(currentFlow.ui.action)}
+            method="POST"
+            className={formStack}
+          >
+            <input
+              type="hidden"
+              name="csrf_token"
+              value={currentFlow.ui.nodes.find((n) =>
+                n.attributes.name === "csrf_token"
+              )
+                ?.attributes.value ?? ""}
+            />
+            <input type="hidden" name="method" value="code" />
+            <input type="hidden" name="code" value={code} />
             <TextInput
               label="Recovery code"
               type="text"
               value={code}
               onChange={setCode}
               placeholder="000000"
-              disabled={isSubmitting}
             />
             <Button
               variant="primary"
               type="submit"
               className={primaryButton}
-              disabled={isSubmitting || !code}
+              disabled={!code}
             >
-              {isSubmitting ? "Verifying…" : "Verify Code"}
+              Verify Code
             </Button>
             <button
               type="button"

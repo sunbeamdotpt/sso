@@ -27,6 +27,7 @@ Thumbs.db
 # Test output
 test-results/
 e2e/screenshots/
+e2e/certs/
 coverage/
 
 # Secrets and local config
