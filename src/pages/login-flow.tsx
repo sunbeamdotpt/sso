@@ -19,6 +19,7 @@ import {
   detectRedirectLoop,
 } from "../utils/redirect-guard.ts";
 import { getLoginBrowserUrl } from "../utils/kratos-urls.ts";
+import { signupsEnabled } from "../utils/config.ts";
 import { MarkGithubIcon } from "@primer/octicons-react";
 import type { LoginFlow } from "../api/types.ts";
 
@@ -101,10 +102,6 @@ function getOAuthProviders(
         }, "oidc");
       },
     }));
-}
-
-function isRegistrationDisabled(): boolean {
-  return import.meta.env.VITE_REGISTRATION_DISABLED === "true";
 }
 
 export function LoginFlowPage() {
@@ -392,7 +389,7 @@ export function LoginFlowPage() {
             )}
 
             <div className={links}>
-              {!isRegistrationDisabled() && (
+              {signupsEnabled && (
                 <span className={footerText}>
                   Don&apos;t have an account?{" "}
                   <a href="/registration" className={textLink}>

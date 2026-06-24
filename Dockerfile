@@ -27,8 +27,9 @@ FROM --platform=$BUILDPLATFORM rust:1.96-slim-bookworm AS rust-builder
 ARG TARGETARCH
 ARG BUILDARCH
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      gcc g++ gcc-aarch64-linux-gnu \
+      gcc g++ gcc-aarch64-linux-gnu gcc-x86-64-linux-gnu \
       libc6-dev-arm64-cross linux-libc-dev-arm64-cross \
+      libc6-dev-amd64-cross linux-libc-dev-amd64-cross \
       curl ca-certificates cmake pkg-config make protobuf-compiler && \
     rm -rf /var/lib/apt/lists/*
 RUN rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
@@ -38,12 +39,18 @@ COPY --from=ui-builder /app/dist ./dist
 
 # Build amd64 binary.
 RUN cd api && \
-    CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=gcc \
+    CC_x86_64_unknown_linux_gnu=x86_64-linux-gnu-gcc \
+    CXX_x86_64_unknown_linux_gnu=x86_64-linux-gnu-g++ \
+    AR_x86_64_unknown_linux_gnu=x86_64-linux-gnu-ar \
+    CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc \
     cargo build --release --target x86_64-unknown-linux-gnu && \
     cp target/x86_64-unknown-linux-gnu/release/sso /sso-amd64
 
 # Build arm64 binary.
 RUN cd api && \
+    CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
+    CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
+    AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar \
     CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
     cargo build --release --target aarch64-unknown-linux-gnu && \
     cp target/aarch64-unknown-linux-gnu/release/sso /sso-arm64

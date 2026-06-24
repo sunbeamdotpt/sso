@@ -48,7 +48,7 @@ selfservice:
       ui_url: http://localhost:5175/error
 
     settings:
-      ui_url: http://localhost:5175/settings
+      ui_url: http://localhost:5175/recovery/reset
       privileged_session_max_age: 15m
       required_aal: highest_available
 

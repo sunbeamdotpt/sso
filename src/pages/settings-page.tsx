@@ -13,7 +13,7 @@ import {
 import type { SettingsFlow } from "../api/types.ts";
 
 export function SettingsPage() {
-  const search = useSearch({ from: "/settings" }) as {
+  const search = useSearch({ from: "/recovery/reset" }) as {
     flow?: string;
   };
   const flowId = search.flow;

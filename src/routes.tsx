@@ -75,7 +75,7 @@ const recoveryRoute = createRoute({
 
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/settings",
+  path: "/recovery/reset",
   component: () => (
     <PublicRoute>
       <SettingsPage />

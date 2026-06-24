@@ -18,6 +18,8 @@ pub struct Config {
     pub hydra_admin_url: String,
     /// Hydra public API base URL.
     pub hydra_public_url: String,
+    /// Whether the UI should expose account registration links.
+    pub signups_enabled: bool,
 }
 
 impl Config {
@@ -33,7 +35,15 @@ impl Config {
                 .unwrap_or_else(|_| "http://hydra-admin.ory.svc.cluster.local:4445".to_string()),
             hydra_public_url: std::env::var("HYDRA_PUBLIC_URL")
                 .unwrap_or_else(|_| "http://hydra-public.ory.svc.cluster.local:4444".to_string()),
+            signups_enabled: std::env::var("SIGNUPS_ENABLED")
+                .map(|v| v.eq_ignore_ascii_case("true"))
+                .unwrap_or(false),
         })
+    }
+
+    /// Serialize the public UI configuration as JSON for injection into index.html.
+    pub fn ui_config_json(&self) -> String {
+        serde_json::json!({ "signupsEnabled": self.signups_enabled }).to_string()
     }
 
     /// Build a request URL for the Kratos public API, preserving the path and query.

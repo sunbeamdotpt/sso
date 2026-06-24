@@ -114,7 +114,7 @@ test.describe("Auth Flows", () => {
     await page.getByRole("button", { name: /Verify Code/i }).click();
 
     // Kratos returns a privileged settings flow after the code is verified.
-    await expect(page).toHaveURL(/\/settings\?flow=/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/recovery\/reset\?flow=/, { timeout: 10_000 });
     await expect(page.getByRole("heading", { name: "Set a new password" }))
       .toBeVisible();
 

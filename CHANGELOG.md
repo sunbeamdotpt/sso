@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc11] - 2026-06-23
+
+### Fixed
+
+- Moved the post-recovery password-reset page from `/settings` to `/recovery/reset` so it is served by the public SSO portal instead of being redirected to the internal admin hostname `id.artemis.cdg.sunbeam.pt`.
+- Updated production Kratos `settings.ui_url` and `allowed_return_urls` in `../sbbb/base/ory/kratos-values.yaml` and `../sbbb/base/ory/kratos-selfservice-urls.yaml` to use `/recovery/reset`.
+
+### Added
+
+- Runtime public UI configuration injected into `index.html` by the Rust backend. `SIGNUPS_ENABLED` (default `false`) controls whether the login page shows the "Sign up" link without requiring a rebuild.
+
 ## [1.0.0-rc10] - 2026-06-23
 
 ### Fixed

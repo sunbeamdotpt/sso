@@ -109,6 +109,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let bind_addr: SocketAddr = config.bind_addr.parse()?;
+    static_files::init(&config);
     let shared_config = Arc::new(config);
 
     // Server-side API routes live under `/api`. The SPA makes requests like
