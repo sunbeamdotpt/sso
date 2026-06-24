@@ -359,6 +359,7 @@ export function RecoveryPage() {
             <Button
               variant="primary"
               type="submit"
+              className={primaryButton}
               disabled={isSubmitting || !email}
             >
               {isSubmitting ? "Sending…" : "Send Recovery Code"}
@@ -379,6 +380,7 @@ export function RecoveryPage() {
             <Button
               variant="primary"
               type="submit"
+              className={primaryButton}
               disabled={isSubmitting || !code}
             >
               {isSubmitting ? "Verifying…" : "Verify Code"}
@@ -406,6 +408,7 @@ export function RecoveryPage() {
             <Button
               variant="primary"
               type="submit"
+              className={primaryButton}
               disabled={isSubmitting || !password}
             >
               {isSubmitting ? "Updating…" : "Reset Password"}
@@ -462,6 +465,11 @@ const formStack = css({
   display: "flex",
   flexDirection: "column",
   gap: "16px",
+});
+
+const primaryButton = css({
+  width: "100%",
+  justifyContent: "center",
 });
 
 const links = css({

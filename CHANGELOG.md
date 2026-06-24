@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc12] - 2026-06-24
+
+### Fixed
+
+- Recovery flow now sanitizes `ory_kratos_session` cookies: the proxy strips any existing session cookie from recovery requests and clears stale host-only session cookies when Kratos issues the new recovery session. This fixes 401s on the subsequent settings flow in production, where an old or cross-subdomain session cookie can shadow the fresh one.
+- Primary action buttons on `/login`, `/recovery`, and `/recovery/reset` are now consistently full-width and centered.
+
 ## [1.0.0-rc11] - 2026-06-23
 
 ### Fixed

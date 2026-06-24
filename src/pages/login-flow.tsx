@@ -578,8 +578,7 @@ const checkboxRow = css({
 });
 
 const narrowButton = css({
-  width: "70%",
-  alignSelf: "center",
+  width: "100%",
   justifyContent: "center",
 });
 
@@ -592,8 +591,7 @@ const divider = css({
   fontWeight: "semibold",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
-  width: "70%",
-  alignSelf: "center",
+  width: "100%",
   "&::before, &::after": {
     content: '""',
     flex: 1,
@@ -611,8 +609,7 @@ const oauthStack = css({
 });
 
 const oauthButton = css({
-  width: "70%",
-  alignSelf: "center",
+  width: "100%",
   justifyContent: "center",
   whiteSpace: "nowrap",
 });

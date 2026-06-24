@@ -154,6 +154,7 @@ export function SettingsPage() {
           <Button
             variant="primary"
             type="submit"
+            className={primaryButton}
             disabled={settingsQuery.isFetching || !password}
           >
             {settingsQuery.isFetching ? "Updating…" : "Update Password"}
@@ -209,6 +210,11 @@ const formStack = css({
   display: "flex",
   flexDirection: "column",
   gap: "16px",
+});
+
+const primaryButton = css({
+  width: "100%",
+  justifyContent: "center",
 });
 
 const links = css({

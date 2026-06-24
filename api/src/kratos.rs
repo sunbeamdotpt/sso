@@ -54,6 +54,67 @@ fn forward_request_headers(headers: &HeaderMap) -> reqwest::header::HeaderMap {
     out
 }
 
+/// Recovery flows are used by unauthenticated users. Any existing
+/// `ory_kratos_session` cookie belongs to a previous session and can confuse
+/// Kratos (it may reject the request because the stale cookie is invalid or
+/// belongs to a different subdomain). Strip it from the upstream request so
+/// Kratos always starts the recovery flow with a clean cookie jar.
+fn recovery_request_headers(headers: &HeaderMap) -> reqwest::header::HeaderMap {
+    let mut out = forward_request_headers(headers);
+    if let Ok(cookie_name) = reqwest::header::HeaderName::from_bytes(b"Cookie") {
+        if let Some(cookie_value) = out.get(&cookie_name) {
+            if let Ok(s) = cookie_value.to_str() {
+                let cleaned: Vec<&str> = s
+                    .split(';')
+                    .map(str::trim)
+                    .filter(|part| {
+                        !part.starts_with("ory_kratos_session=") && !part.is_empty()
+                    })
+                    .collect();
+                if cleaned.is_empty() {
+                    out.remove(&cookie_name);
+                } else {
+                    let new_value = reqwest::header::HeaderValue::from_str(&cleaned.join("; "))
+                        .unwrap_or_else(|_| cookie_value.clone());
+                    out.insert(cookie_name, new_value);
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Build a Set-Cookie header that clears any host-only `ory_kratos_session`
+/// cookie. Kratos sets the recovery session cookie with the configured domain
+/// (e.g. `sunbeam.pt`), but a stale host-only cookie on `auth.sunbeam.pt` can
+/// shadow it and cause 401s on the subsequent settings flow.
+fn clear_host_session_cookie() -> (HeaderName, HeaderValue) {
+    (
+        header::SET_COOKIE,
+        HeaderValue::from_static(
+            "ory_kratos_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
+        ),
+    )
+}
+
+/// Forward upstream response headers, but for recovery responses clear any
+/// host-only session cookie when Kratos issues a new session.
+fn recovery_response_headers(headers: &reqwest::header::HeaderMap) -> HeaderMap {
+    let mut out = forward_response_headers(headers);
+    let sets_session = headers.get_all(reqwest::header::SET_COOKIE).iter().any(|v| {
+        v.to_str()
+            .map(|s| s.trim().starts_with("ory_kratos_session="))
+            .unwrap_or(false)
+    });
+    if sets_session {
+        // Append the clearing cookie *before* the new session cookie so the
+        // browser removes stale host-only cookies and then stores the new one.
+        let (name, value) = clear_host_session_cookie();
+        out.append(name, value);
+    }
+    out
+}
+
 /// Forward headers from upstream response to the client.
 fn forward_response_headers(headers: &reqwest::header::HeaderMap) -> HeaderMap {
     let mut out = HeaderMap::new();
@@ -126,6 +187,66 @@ async fn kratos_proxy(config: Arc<Config>, request: Request) -> Response {
 
     let status = StatusCode::from_u16(upstream.status().as_u16()).unwrap_or(StatusCode::OK);
     let headers = forward_response_headers(upstream.headers());
+    let body_bytes = match upstream.bytes().await {
+        Ok(b) => b,
+        Err(_) => return (StatusCode::BAD_GATEWAY, "Kratos unavailable").into_response(),
+    };
+
+    (status, headers, body_bytes).into_response()
+}
+
+/// Recovery-specific proxy that sanitizes session cookies so a stale or
+/// cross-subdomain `ory_kratos_session` cookie cannot break the recovery flow.
+async fn recovery_proxy(config: Arc<Config>, request: Request) -> Response {
+    let path_and_query = request
+        .uri()
+        .path_and_query()
+        .map(|p| p.as_str())
+        .unwrap_or("/");
+    let target = config.kratos_public_target(path_and_query);
+
+    let client = match http_client() {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "failed to build HTTP client",
+            )
+                .into_response();
+        }
+    };
+
+    let method = match request.method().as_str() {
+        "GET" => reqwest::Method::GET,
+        "POST" => reqwest::Method::POST,
+        "PUT" => reqwest::Method::PUT,
+        "DELETE" => reqwest::Method::DELETE,
+        "HEAD" => reqwest::Method::HEAD,
+        "OPTIONS" => reqwest::Method::OPTIONS,
+        "PATCH" => reqwest::Method::PATCH,
+        _ => reqwest::Method::GET,
+    };
+
+    let mut builder = client
+        .request(method, &target)
+        .headers(recovery_request_headers(request.headers()));
+
+    if *request.method() != axum::http::Method::GET && *request.method() != axum::http::Method::HEAD
+    {
+        let body_bytes = match axum::body::to_bytes(request.into_body(), usize::MAX).await {
+            Ok(b) => b,
+            Err(_) => return (StatusCode::BAD_REQUEST, "invalid request body").into_response(),
+        };
+        builder = builder.body(body_bytes);
+    }
+
+    let upstream = match builder.send().await {
+        Ok(r) => r,
+        Err(_) => return (StatusCode::BAD_GATEWAY, "Kratos unavailable").into_response(),
+    };
+
+    let status = StatusCode::from_u16(upstream.status().as_u16()).unwrap_or(StatusCode::OK);
+    let headers = recovery_response_headers(upstream.headers());
     let body_bytes = match upstream.bytes().await {
         Ok(b) => b,
         Err(_) => return (StatusCode::BAD_GATEWAY, "Kratos unavailable").into_response(),
@@ -255,6 +376,7 @@ pub fn kratos_routes(config: Arc<Config>) -> AxumRouter {
     let config_flow_error = Arc::clone(&config);
     let config_flow_type = Arc::clone(&config);
     let config_sessions_proxy = Arc::clone(&config);
+    let config_recovery = Arc::clone(&config);
     let config_self_service = Arc::clone(&config);
     let config_catch_all = Arc::clone(&config);
 
@@ -278,6 +400,10 @@ pub fn kratos_routes(config: Arc<Config>) -> AxumRouter {
         .route(
             "/sessions/whoami",
             any(move |req: Request| kratos_proxy(Arc::clone(&config_sessions_proxy), req)),
+        )
+        .route(
+            "/self-service/recovery/{*path}",
+            any(move |req: Request| recovery_proxy(Arc::clone(&config_recovery), req)),
         )
         .route(
             "/self-service/{*path}",
